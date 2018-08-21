@@ -1,0 +1,6 @@
+# config.default
+# run cp config.default /usr/local/bin/proteus-test-daemon/.config
+
+export PTHYONPATH="$PYTHONPATH:/usr/local/bin/proteus-test-daemon"
+export APPVEYOR_TOKEN=""
+export PARTICLE_PLATFORM=""

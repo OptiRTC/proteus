@@ -1,0 +1,14 @@
+[Unit]
+Description=Proteus Test Daemon
+After=multi-user.target
+Wants=network-online.target
+
+[Service]
+Type=idle
+User=proteus
+Group=proteus
+ExecStart=/usr/local/bin/proteus-test-daemon/appveyor_daemon.sh
+
+[Install]
+WantedBy=multi-user.target
+

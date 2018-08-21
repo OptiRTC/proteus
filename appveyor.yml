@@ -1,0 +1,23 @@
+version: '1.0.0-{build}'
+
+image: Ubuntu
+
+environment:
+  BUILD_NAME: HUNDER_BUILD_NAME: APPNAME-$APPVEYOR_BUILD_VERSION
+  APPVEYOR_TOKEN:
+    secure: APPVEYOR_TOKEN
+
+init:
+  - sudo apt-get -qq update
+
+after_build:
+  - 7z a $BUILD_NAME.zip bin/electron/*.bin
+  - 7z a $BUILD_NAME.zip bin/photon/*.bin
+
+artifacts:
+    path: $BUILD_NAME.zip
+    name: Binaries
+    type: zip
+
+on_success:
+  - scripts/test/appveyor_test_wait.py
