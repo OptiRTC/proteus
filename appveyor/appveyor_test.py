@@ -9,14 +9,14 @@ import os
 import zipfile
 from time import sleep
 import requests
-from test_runner import TestRunner
+from test_manager import TestManager
 
 
-class AppveyorTest(TestRunner):
+class AppveyorTest(TestManager):
     """ Gets tests artifacts and info from Appveyor """
     HEADERS = {
         'Authorization' : 'Bearer {}'.format(
-            os.environ['APPVEYOR_TOKEN'])}
+            os.environ['CI_API_TOKEN'])}
     BASE_URI = "https://ci.appveyor.com/api"
     INFO_URI = "projects/{}/{}".format(
 	os.environ['APPVEYOR_ACCOUNT_NAME'],

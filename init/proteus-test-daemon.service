@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=idle
 User=proteus
 Group=proteus
-ExecStart=/usr/local/bin/proteus-test-daemon/appveyor_daemon.sh
+ExecStart=/usr/local/bin/proteus-test-daemon/proteus.sh
 
 [Install]
 WantedBy=multi-user.target

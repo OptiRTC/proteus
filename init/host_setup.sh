@@ -16,7 +16,8 @@ sudo chmod 644 /lib/systemd/system/proteus-test-daemon
 sudo systemctl daemon-reload
 sudo systemctl enable proteus-test-daemon.service
 
-sudo cp -r ../scripts/test/* $DAMEON_DIR
+sudo cp -r src/* $DAMEON_DIR
+sudo cp -n init/config.default $DAMEON_DIR/.config
 
 echo "0.0.0-0" | sudo tee $DAMEON_DIR/build_log.txt
 sudo chmod -R 755 $DAMEON_DIR
@@ -32,5 +33,5 @@ sudo cp '$HOME/50-particle.rules' '/etc/udev/rules.d/'
 
 echo "Set these environment variables in /usr/local/bin/proteus-test-daemon/.config"
 echo "PARTICLE_PLATFORM=<electron|photon>"
-echo "APPVEYOR_TOKEN=<appveyor api token>"
+echo "CI_API_TOKEN=<api token>"
 echo "A reboot is recommended"

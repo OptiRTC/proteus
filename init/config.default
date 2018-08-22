@@ -1,0 +1,13 @@
+# config.default
+# copy to /usr/local/bin/proteus-test-daemon/.config and edit
+
+# ========== Generic config ==========
+export PTHYONPATH="$PYTHONPATH:/usr/local/bin/proteus-test-daemon"
+export CI_API_TOKEN=""
+export PARTICLE_PLATFORM=""
+
+# ========== Appveyor config ===========
+#export APPVEYOR_ACCOUNT_NAME=""
+#export APPVEYOR_PROJECT_SLUG=""
+#export APPVEYOR_BUILD_VERSION=""
+

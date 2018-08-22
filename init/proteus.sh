@@ -4,11 +4,11 @@
 export NPM_CONFIG_PREFIX=/usr/local/lib/.npm-global
 export PYTHONUNBUFFERED=Yes
 
-if [[ -z $APPVEYOR_TOKEN ]]; then
-	echo "APPVEYOR_TOKEN needs to be set in appveyor_daemon.sh"
+if [[ -z $CI_API_TOKEN ]]; then
+	echo "CI_API_TOKEN needs to be set in /usr/local/bin/proteus-test-daemon/.config"
 	exit 1
 fi
 
 pushd /usr/local/bin/proteus-test-daemon
-./appveyor_run.py  > log.txt 2>&1
+./run_test.py  > log.txt 2>&1
 popd

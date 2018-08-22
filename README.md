@@ -10,15 +10,14 @@ MIT License.
 ## Prereqs
 Setup CI with Appveyor. It is recommended to use an ubuntu image and makefile-based build process.
 Ensure all test binaries are built and packaged as artifacts in a zip file.
-It is recommened that binaries follow a bin/`<platform>`/`<bin_name>.bin` structure.
+It is recommened that binaries follow a `bin/<platform>/<bin_name>.bin` structure.
 
 ## Installation
 - Select a host platform (debian linux based)
 - Edit `init/proteus-test-daemon.service` with the user and group to run the daemon
-- Run `setup.sh` to install prereqs, daemon, and copy data to `/usr/local/bin/proteus-test-daemon/`
-- Create `.config` in the `/usr/local/bin/proteus-test-daemon/`
-- Edit the `.config` file (see `config.default` for an example)
-- Modify `appveyor_run.py` and `run_test.py` to reflect your test binaries (based on spark-unit-test)
+- Run `init/host_setup.sh` to install prereqs, daemon, and copy data to `/usr/local/bin/proteus-test-daemon/`
+- Edit `.config` in the `/usr/local/bin/proteus-test-daemon/`
+- Modify `proteus.sh` to run your master test file. (See run_test.py.example)
 - Author any test-scenarios that are required (Power Cycle or other external-excitation test)
 
 ## Test Scenarios

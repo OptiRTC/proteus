@@ -4,7 +4,7 @@
 Runs the standard tests on-device
 FUTURE: Manages power and sensors
 """
-from test_agent import TestRunner
+from test_runner import TestRunner
 
 
 class TestManager():
@@ -19,7 +19,7 @@ class TestManager():
             bin_path = "bin/{}/".format(platform)
         self.bin_path = bin_path
         if scenario_path is None:
-            scenario_path = "test/scenarios"
+            scenario_path = "scenarios"
         self.scenario_path = scenario_path
         self.test_agent = TestRunner("/dev/ttyACM0", platform)
         # Runs test using the unit testing framework
@@ -34,7 +34,7 @@ class TestManager():
 
     def add_scenario(self, scenario_name):
         """ Adds a scenario (python script) to be run """
-        self.binfiles.append(scenario_name)
+        self.scenarios.append(scenario_name)
 
     def add_destructive_test(self, test_bin):
         """ Adds test only if destructive tests have been enabled """
@@ -44,7 +44,7 @@ class TestManager():
     def add_destructive_scenario(self, scenario_name):
         """ Adds scenario only if destructive tests have been enabled """
         if self.destructive_tests:
-            self.binfiles.append(scenario_name)
+            self.scenarios.append(scenario_name)
 
     def enable_destructive_tests(self, enable):
         """ Enables destructive testing """
