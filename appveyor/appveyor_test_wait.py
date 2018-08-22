@@ -4,18 +4,18 @@
 Causes appveyor to wait for testing
 """
 
-import os
+from os import getenv
 from time import sleep, time
 import requests
 
 HEADERS = {
     'Authorization' : 'Bearer {}'.format(
-        os.environ['APPVEYOR_TOKEN'])}
+        getenv('APPVEYOR_TOKEN'))}
 BASE_URI = "https://ci.appveyor.com/api"
 INFO_URI = "projects/{}/{}/build/{}".format(
-    os.environ["APPVEYOR_ACCOUNT_NAME"],
-    os.environ["APPVEYOR_PROJECT_SLUG"],
-    os.environ["APPVEYOR_BUILD_VERSION"])
+    getenv("APPVEYOR_ACCOUNT_NAME"),
+    getenv("APPVEYOR_PROJECT_SLUG"),
+    getenv("APPVEYOR_BUILD_VERSION"))
 MESSAGE_URI = "build/messages"
 TEST_TIMEOUT = 600
 TEST_BACKOFF = 30

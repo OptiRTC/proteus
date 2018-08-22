@@ -1,5 +1,5 @@
 """
-Provides a test framework for Thunder-App test scenarios
+Provides a test framework for complex scenarios
 """
 from queue import Queue
 import sys
@@ -8,7 +8,7 @@ from time import time, sleep
 
 from serial import Serial
 from gpiozero import DigitalOutputDevice
-from serial_thread import ReadlineSerial
+from proteus.serial_thread import ReadlineSerial
 
 
 class TestEvent():

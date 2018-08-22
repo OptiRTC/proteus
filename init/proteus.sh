@@ -10,5 +10,5 @@ if [[ -z $CI_API_TOKEN ]]; then
 fi
 
 pushd /usr/local/bin/proteus-test-daemon
-./run_test.py  > log.txt 2>&1
+./run_test.py 2>&1 | tee log.txt
 popd

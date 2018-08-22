@@ -5,37 +5,44 @@ Connects to appveyor and runs tests
 """
 
 import io
-import os
+from os import getenv
 import zipfile
 from time import sleep
 import requests
-from test_manager import TestManager
+from proteus.test_manager import TestManager
 
 
-class AppveyorTest(TestManager):
+class AppveyorManager(TestManager):
     """ Gets tests artifacts and info from Appveyor """
     HEADERS = {
         'Authorization' : 'Bearer {}'.format(
-            os.environ['CI_API_TOKEN'])}
+            getenv('CI_API_TOKEN'))}
+    BUILD_FILE = TestManager.BASE_DIR + "build_log.txt"
     BASE_URI = "https://ci.appveyor.com/api"
     INFO_URI = "projects/{}/{}".format(
-	os.environ['APPVEYOR_ACCOUNT_NAME'],
-	os.environ['APPVEYOR_PROJECT_SLUG'])
+        getenv('APPVEYOR_ACCOUNT_NAME'),
+        getenv('APPVEYOR_PROJECT_SLUG'))
     ARTIFACT_URI = "buildjobs/{}/artifacts"
     POLL_INTERVAL = 60
     STATE_IDLE = 0
     STATE_RUNNING = 1
 
-    def __init__(self, platform="electron", test_path=None, destructive_tests=False):
-        if test_path is None:
-            test_path = "appveyor/bin/{}/".format(platform)
+    def __init__(self,
+                 platform="electron",
+                 user_app="user.bin",
+                 test_path=None,
+                 scenario_path=None):
         self.build_dir = "appveyor"
-        super().__init__(platform, test_path, self.SCENARIO_DIR, destructive_tests)
+        if test_path is None:
+            test_path = "{}/bin/{}/".format(self.build_dir, platform)
+        
+        super().__init__(platform, user_app, test_path, scenario_path)
         self.poller = None
         self.last_build = ""
         with open(self.BUILD_FILE, "r") as file:
             # No reason to keep it all in memory
             self.last_build = file.readlines()[-1]
+        self.pending_build = self.last_build
 
         print("Last build {}".format(self.last_build))
         self.state = self.STATE_IDLE
@@ -50,19 +57,21 @@ class AppveyorTest(TestManager):
 
     def fetch_build_artifacts(self, job_id):
         """ Downloads and unzips build artifacts """
+        print("Fetching artifacts to {}".format(self.build_dir))
         build_uri = "{}/{}".format(
-            AppveyorTest.BASE_URI,
-            AppveyorTest.ARTIFACT_URI.format(job_id))
+            AppveyorManager.BASE_URI,
+            AppveyorManager.ARTIFACT_URI.format(job_id))
         artifacts = requests.get(
             build_uri,
-            headers=AppveyorTest.HEADERS).json()
+            headers=AppveyorManager.HEADERS).json()
         build_stream = requests.get(
             "{}/{}".format(
                 build_uri,
                 artifacts[0]["fileName"]),
-            headers=AppveyorTest.HEADERS)
+            headers=AppveyorManager.HEADERS)
         build_zip = zipfile.ZipFile(io.BytesIO(build_stream.content))
         build_zip.extractall(path=self.build_dir)
+        print("Artifacts extracted")
 
     def publish_tests(self, job_id, xml_file):
         """ Uploads XML to result endpoint """
@@ -72,7 +81,7 @@ class AppveyorTest(TestManager):
         print("Upload to: {}".format(result_uri))
         return requests.post(result_uri,
                              files={'file': open(xml_file, 'rb')},
-                             headers=AppveyorTest.HEADERS)
+                             headers=AppveyorManager.HEADERS)
 
     def poll(self):
         """ Checks if the latest build successed, and runs tests """
@@ -93,7 +102,9 @@ class AppveyorTest(TestManager):
                 print("Resuming idle state")
                 self.state = self.STATE_IDLE
             else:
-                print("No artifacts for {} yet".format(result["build"]["version"]))
+                if self.pending_build != result["build"]["version"]:
+                    self.pending_build = result["build"]["version"]
+                    print("No artifacts for {} yet".format(self.pending_build))
         else:
             print("Skipping {}, already run".format(result["build"]["version"]))
 

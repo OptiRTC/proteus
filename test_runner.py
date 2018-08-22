@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Facilitates running tests
+Facilitates running tests and flashing the device
 """
 
 import re
@@ -10,7 +10,7 @@ from time import sleep, time
 from queue import Queue
 import serial
 from junit_xml import TestCase, TestSuite
-from serial_thread import SerialThread, NewlineThread
+from proteus.serial_thread import SerialThread, NewlineThread
 
 
 class TestRunner():
@@ -20,10 +20,6 @@ class TestRunner():
     FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
     FLASH_BAUD = 14400 # Magic baud from Particle
     NEUTRAL_BAUD = 9600
-    
-    BASE_DIR = "/usr/local/bin/proteus-test-daemon/"
-    BUILD_FILE = BASE_DIR + "build_log.txt"
-    SCENARIO_DIR = BASE_DIR + 'scenarios'
     # Based on output from particle-unit-test framework
     ASSERTION_RE = re.compile(r"^Assertion\s(.+)\:\s(.+)")
     TEST_RE = re.compile(r"^Test\s([a-zA-Z0-9_]+)\s([a-z]+)\.")
@@ -150,7 +146,7 @@ class TestRunner():
             for line in iter(process.stdout.readline, b''):
                 if line:
                     print(line)
-                    self.parse_line(time(), line)
+                    self.parse_line(time(), line.decode('utf-8'))
         self.suite_id += 1
         self.retries = 0
 

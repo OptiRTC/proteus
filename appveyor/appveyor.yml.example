@@ -20,4 +20,4 @@ artifacts:
     type: zip
 
 on_success:
-  - scripts/test/appveyor_test_wait.py
+  - proteus/appveyor_test_wait.py

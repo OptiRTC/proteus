@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 
 """
-Runs the standard tests on-device
-FUTURE: Manages power and sensors
+Runs a test sequence and provides and API to easily
+specify tests and scenarios to run
 """
-from test_runner import TestRunner
+from proteus.test_runner import TestRunner
 
 
 class TestManager():
     """ Runs tests on device """
+
+    BASE_DIR = "/usr/local/bin/proteus-test-daemon/"
+    SCENARIO_DIR = BASE_DIR + 'scenarios'
 
     def __init__(self,
                  platform="photon",
@@ -56,6 +59,7 @@ class TestManager():
             print("================ {} ================".format(test))
             self.test_agent.run_test_suite(self.bin_path + test + ".bin")
         for scenario in self.scenarios:
+            print("================ {} ================".format(scenario))
             self.test_agent.run_test_scenario(
                 "{}/{}".format(self.scenario_path,
                                scenario),
@@ -65,6 +69,10 @@ class TestManager():
         print(xml)
         with open(result_filename, "w") as file:
             file.write(xml)
+
+    def run(self):
+        """ Runs tests and writes to default file """
+        self.run_tests("results.xml")
 
     def get_xml(self):
         """ Returns XML """
