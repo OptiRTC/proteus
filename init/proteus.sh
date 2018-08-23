@@ -1,7 +1,6 @@
 #!/bin/bash
 
 . /usr/local/bin/proteus-test-daemon/.config
-export NPM_CONFIG_PREFIX=/usr/local/lib/.npm-global
 export PYTHONUNBUFFERED=Yes
 
 if [[ -z $CI_API_TOKEN ]]; then

@@ -1,6 +1,7 @@
 """
 Provides a test framework for complex scenarios
 """
+from os import path
 from queue import Queue
 import sys
 from threading import Thread
@@ -50,9 +51,8 @@ class TestScenario(Thread):
     TIMEOUT = 60
     RST_SETTLE_TIME = 1
     RST_PIN = 23
-    SERIAL_SLEEP = 6
+    SERIAL_TIMEOUT = 60
     SERIAL_BAUD = 115200
-    CONFIGURATRON_BIN = "configuratron.exe"
 
     def __init__(self, name, port="/dev/ttyACM0"):
         super().__init__()
@@ -70,8 +70,12 @@ class TestScenario(Thread):
 
     def open_serial(self):
         """ PRIVATE: Opens the serial interface """
-        sleep(self.SERIAL_SLEEP)
-        self.serial_device = Serial(self.port, self.SERIAL_BAUD)
+        while not path.exists(self.port):
+            sleep(1)
+        self.serial_device = Serial(
+            self.port,
+            self.SERIAL_BAUD,
+            timeout=self.SERIAL_TIMEOUT)
         self.serial_thread = ReadlineSerial(self.serial_device, self.messages, self.writes)
         self.serial_thread.start()
 
@@ -127,7 +131,7 @@ class TestScenario(Thread):
         """ Waits for a number of seconds that must be less than TIMEOUT """
         def _second_wait():
             if seconds > self.TIMEOUT:
-                print("TIMEOUT Tautology")
+                print("Test Design Error: Wait exceeds timeout")
                 return False
             sleep(seconds)
             return True

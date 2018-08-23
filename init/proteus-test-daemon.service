@@ -5,10 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=idle
-User=proteus
-Group=proteus
+User=
 ExecStart=/usr/local/bin/proteus-test-daemon/proteus.sh
 
 [Install]
 WantedBy=multi-user.target
-

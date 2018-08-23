@@ -2,10 +2,11 @@
 # copy to /usr/local/bin/proteus-test-daemon/.config and edit
 
 # ========== Generic config ==========
-export PATH="$PATH:/usr/local/bin/proteus-test-daemon/bin"
+export PARTICLE_BIN="/home/pi/bin/particle"
 export PYTHONPATH="$PYTHONPATH:/usr/local/bin/proteus-test-daemon"
 export CI_API_TOKEN=""
 export PARTICLE_PLATFORM=""
+# Supports: APPVEYOR
 export CI_PLATFORM="APPVEYOR"
 
 # ========== Appveyor config ===========

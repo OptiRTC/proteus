@@ -3,7 +3,7 @@
 """
 Facilitates running tests and flashing the device
 """
-
+from os import getenv, path
 import re
 from subprocess import call, Popen, PIPE
 from time import sleep, time
@@ -20,6 +20,7 @@ class TestRunner():
     FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
     FLASH_BAUD = 14400 # Magic baud from Particle
     NEUTRAL_BAUD = 9600
+    SERIAL_TIMEOUT = 10
     # Based on output from particle-unit-test framework
     ASSERTION_RE = re.compile(r"^Assertion\s(.+)\:\s(.+)")
     TEST_RE = re.compile(r"^Test\s([a-zA-Z0-9_]+)\s([a-z]+)\.")
@@ -41,8 +42,16 @@ class TestRunner():
         self.last_test = 0
         self.start = 0
 
+    def wait_for_serial(self):
+        start = time()
+        while not path.exists(self.port_name):
+            sleep(1)
+            if (time() - start) > self.FLASH_WAIT_TIME:
+                break
+
     def set_flash_mode(self):
         """ Put particle device into DFU mode via magic baud """
+        self.wait_for_serial()
         try:
             ser = serial.Serial(self.port_name, self.FLASH_BAUD)
             ser.close()
@@ -53,7 +62,11 @@ class TestRunner():
 
     def flash(self, binfile):
         """ Flashes firmware <binfile> to device """
-        flash_cmd = "particle flash --usb {}".format(binfile)
+        flash_cmd = "{} flash --usb {}".format(
+            getenv(
+                "PARTICLE_BIN",
+                "/usr/bin/particle"),
+            binfile)
         self.suite_name = binfile
         print("Flashing {}".format(binfile))
         self.set_flash_mode()
@@ -65,9 +78,13 @@ class TestRunner():
     def serial_setup(self):
         """ Wait for port to exist and be openable """
         ser = None
+        self.wait_for_serial()
         while ser is None:
             try:
-                ser = serial.Serial(self.port_name, self.NEUTRAL_BAUD)
+                ser = serial.Serial(
+                    self.port_name,
+                    self.NEUTRAL_BAUD,
+                    timeout=self.SERIAL_TIMEOUT)
                 ser.close()
                 break
             except serial.SerialException:
@@ -106,13 +123,14 @@ class TestRunner():
                     self.start = time()
                     self.last_test = self.start
                     self.tests = []
-                if line == "Starting in DFU mode":
+                if line == "Starting in DFU mode" or not ser.isOpen():
                     # This message happens on reboot/test end
-                    reader.stop()
-                    reader.join()
-                    line_parser.stop()
-                    line_parser.join()
                     break
+            reader.stop()
+            reader.join()
+            line_parser.stop()
+            line_parser.join()
+            ser.close()
 
     def run_test_suite(self, binfile):
         """ Run a test suite with retries """
@@ -134,6 +152,7 @@ class TestRunner():
 
     def run_test_scenario(self, scenario, binfile):
         """ Run a test scenario with retries """
+        self.tests = []
         result = False
         while result is False:
             self.retries += 1
@@ -141,12 +160,14 @@ class TestRunner():
                 break
             self.flash(binfile)
             sleep(self.FLASH_WAIT_TIME)
-            self.suite_name = "{}_{}_{}".format(binfile, scenario, self.suite_id)
-            process = Popen([scenario + '.py'], stdout=PIPE)
-            for line in iter(process.stdout.readline, b''):
-                if line:
-                    print(line)
-                    self.parse_line(time(), line.decode('utf-8'))
+        self.suite_name = "{}_{}_{}".format(binfile, scenario, self.suite_id)
+        self.start = time()
+        self.last_test = self.start
+        process = Popen([scenario + '.py'], stdout=PIPE)
+        for line in iter(process.stdout.readline, b''):
+            if line:
+                print(line)
+                self.parse_line(time(), line.decode('utf-8'))
         self.suite_id += 1
         self.retries = 0
 
