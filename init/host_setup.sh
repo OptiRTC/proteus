@@ -9,7 +9,7 @@ sudo systemctl enable pigpiod
 sudo apt-get -qq install build-essential python3-gpiozero python3-pigpio python3-pip dfu-util -y
 sudo pip3 install requests pyserial junit_xml flatbuffers -q
 
-sudo mkdir -p $DAEMON_DIR || exit 1
+sudo mkdir -p $DAEMON_DIR/proteus || exit 1
 
 sudo cp proteus-test-daemon.service /lib/systemd/system/proteus-test-daemon.service || exit 1
 sudo chmod 644 /lib/systemd/system/proteus-test-daemon.service || exit 1
@@ -30,7 +30,10 @@ curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
 sudo apt-get -qq update
 sudo apt-get -qq install nodejs -y
 
-bash <( curl -sL https://particle.io/install-cli ) > /dev/null
+curl -sL https://particle.io/install-cli -o "$HOME/install-cli"
+sed -i "s@DEST_PATH=\"\$HOME/bin\"@DEST_PATH=\"$DAEMON_DIR/bin\"@g" "$HOME/install-cli"
+bash < "$HOME/install-cli"
+
 curl -sSL -o "$HOME/50-particle.rules" https://docs.particle.io/assets/files/50-particle.rules
 sudo cp "$HOME/50-particle.rules" "/etc/udev/rules.d/"
 

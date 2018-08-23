@@ -2,6 +2,7 @@
 # copy to /usr/local/bin/proteus-test-daemon/.config and edit
 
 # ========== Generic config ==========
+export PATH="$PATH:/usr/local/bin/proteus-test-daemon/bin"
 export PYTHONPATH="$PYTHONPATH:/usr/local/bin/proteus-test-daemon"
 export CI_API_TOKEN=""
 export PARTICLE_PLATFORM=""

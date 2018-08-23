@@ -137,15 +137,28 @@ class TestScenario(Thread):
 
     def power_cycle(self):
         """ Gives a pulse (active low) on the RST pin """
-        def _power_cycle():
+        self.power_off()
+        self.power_on()
+
+    def power_off(self):
+        """ Drive RST ON """
+        def _power_off():
             self.serial_thread.stop()
             self.serial_device.close()
             self.rst_pin.on()
             sleep(self.RST_SETTLE_TIME)
+            return True
+        event = TestEvent(_power_off)
+        self.events.append(event)
+        return event
+
+    def power_on(self):
+        """ Drive RST OFF """
+        def _power_on():
             self.rst_pin.off()
             self.open_serial()
             return True
-        event = TestEvent(_power_cycle)
+        event = TestEvent(_power_on)
         self.events.append(event)
         return event
 
