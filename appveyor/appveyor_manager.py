@@ -105,8 +105,6 @@ class AppveyorManager(TestManager):
                 if self.pending_build != result["build"]["version"]:
                     self.pending_build = result["build"]["version"]
                     print("No artifacts for {} yet".format(self.pending_build))
-        else:
-            print("Skipping {}, already run".format(result["build"]["version"]))
 
     def run(self):
         """ Runs poll as a daemon """
