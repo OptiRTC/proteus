@@ -10,6 +10,6 @@ export PARTICLE_PLATFORM=""
 export CI_PLATFORM="APPVEYOR"
 
 # ========== Appveyor config ===========
-# Set appveyor to a non-empty string to enable
+# Only used when CI_PLATFORM is set to APPVEYOR
 #export APPVEYOR_ACCOUNT_NAME=""
 #export APPVEYOR_PROJECT_SLUG=""
