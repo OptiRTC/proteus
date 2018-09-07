@@ -49,7 +49,7 @@ class TestScenario(Thread):
     """
 
     TIMEOUT = 60
-    RST_SETTLE_TIME = 1
+    RST_SETTLE_TIME = 3
     RST_PIN = 23
     SERIAL_TIMEOUT = 60
     SERIAL_BAUD = 115200
