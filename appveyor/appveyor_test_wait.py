@@ -17,7 +17,7 @@ INFO_URI = "projects/{}/{}/build/{}".format(
     getenv("APPVEYOR_PROJECT_SLUG"),
     getenv("APPVEYOR_BUILD_VERSION"))
 MESSAGE_URI = "build/messages"
-TEST_TIMEOUT = 600
+TEST_TIMEOUT = 1200
 TEST_BACKOFF = 30
 TEST_POLL_INTERVAL = 30
 # Test runners can be up to POLL_INTERVAL
