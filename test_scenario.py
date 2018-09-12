@@ -48,7 +48,7 @@ class TestScenario(Thread):
     Or data-loading, uses serial port to parse messages
     """
 
-    TIMEOUT = 60
+    TIMEOUT = 30
     RST_SETTLE_TIME = 3
     RST_PIN = 23
     SERIAL_TIMEOUT = 60

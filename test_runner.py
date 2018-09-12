@@ -41,6 +41,7 @@ class TestRunner():
         self.retries = 0
         self.last_test = 0
         self.start = 0
+        self.test_finished = False
 
     def wait_for_serial(self):
         start = time()
@@ -161,6 +162,7 @@ class TestRunner():
             self.flash(binfile)
             sleep(self.FLASH_WAIT_TIME)
         self.suite_name = "{}_{}_{}".format(binfile, scenario, self.suite_id)
+        self.test_finished = False
         self.start = time()
         self.last_test = self.start
         process = Popen([scenario + '.py'], stdout=PIPE)
@@ -168,8 +170,27 @@ class TestRunner():
             if line:
                 print(line)
                 self.parse_line(time(), line.decode('utf-8'))
+        self.finish_suite(len(self.tests))
         self.suite_id += 1
         self.retries = 0
+
+    def finish_suite(self, total, timestamp=None):
+        """ Closes a test suite """
+        if self.test_finished:
+            return
+        if timestamp is None:
+            timestamp = time()
+        print("Processed {}/{} tests".format(len(self.tests), total))
+        if len(self.tests) != total:
+            print("Dropped {}!".format(total - len(self.tests)))
+        self.test_suites.append(TestSuite(
+            self.suite_name,
+            self.tests,
+            None,
+            self.suite_id,
+            None,
+            timestamp)) #Timestamp
+        self.test_finished = True
 
     def get_xml(self):
         """ Render XML """
@@ -210,13 +231,4 @@ class TestRunner():
         result = self.SUMMARY_RE.match(line)
         if result:
             total = int(result.group(4))
-            print("Processed {}/{} tests".format(len(self.tests), total))
-            if len(self.tests) != total:
-                print("Dropped {}!".format(total - len(self.tests)))
-            self.test_suites.append(TestSuite(
-                self.suite_name,
-                self.tests,
-                None,
-                self.suite_id,
-                None,
-                timestamp)) #Timestamp
+            self.finish_suite(total, timestamp)
