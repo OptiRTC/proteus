@@ -66,7 +66,8 @@ class TestManager():
                 self.bin_path + self.scenario_bin)
 
         xml = self.test_agent.get_xml()
-        print(xml)
+        print(xml, flush=True)
+
         with open(result_filename, "w") as file:
             file.write(xml)
 

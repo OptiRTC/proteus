@@ -115,4 +115,7 @@ class AppveyorManager(TestManager):
     def log_build(self):
         """ Writes last build info to file """
         with open(self.BUILD_FILE, "w") as file:
-            file.write(str(self.last_build) + "\n")
+            build = str(self.last_build)
+            print("Logging {}".format(build))
+            file.write("{}\n".format(build))
+            file.close()

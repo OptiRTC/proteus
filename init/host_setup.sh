@@ -25,9 +25,10 @@ sudo cp -r ../appveyor/ $DAEMON_DIR/proteus || exit 1
 sudo cp -n config.default $DAEMON_DIR/.config || exit 1
 sudo cp proteus.sh $DAEMON_DIR || exit 1
 sudo touch $DAEMON_DIR/log.txt || exit 1
+sudo chmod +rw $DAEMON_DIR/log.txt
 
 echo "0.0.0-0" | sudo tee $DAEMON_DIR/build_log.txt
-sudo chmod -R g+rw $DAEMON_DIR || exit 1
+sudo chmod +rw $DAEMON_DIR/build_log.txt
 
 sudo apt-get -qq remove --purge node* npm* -y
 curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -

@@ -123,7 +123,6 @@ class TestRunner():
                     write_queue.put("t\r\n".encode())
                     self.start = time()
                     self.last_test = self.start
-                    self.tests = []
                 if line == "Starting in DFU mode" or not ser.isOpen():
                     # This message happens on reboot/test end
                     break
@@ -142,18 +141,19 @@ class TestRunner():
                 break 
             self.flash(binfile)
             sleep(self.FLASH_WAIT_TIME)
+            self.test_finished = False
             try:
                 self.suite_name = "{}_test{}".format(binfile, self.suite_id)
                 self.scan_test()
                 result = True
             except serial.SerialException:
                 pass
+        self.finish_suite(len(self.tests))
         self.suite_id += 1
         self.retries = 0
 
     def run_test_scenario(self, scenario, binfile):
         """ Run a test scenario with retries """
-        self.tests = []
         result = False
         while result is False:
             self.retries += 1
@@ -190,6 +190,7 @@ class TestRunner():
             self.suite_id,
             None,
             timestamp)) #Timestamp
+        self.tests = []
         self.test_finished = True
 
     def get_xml(self):
@@ -232,3 +233,4 @@ class TestRunner():
         if result:
             total = int(result.group(4))
             self.finish_suite(total, timestamp)
+            return
