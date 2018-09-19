@@ -5,7 +5,6 @@ Connects to appveyor and runs tests
 """
 
 import io
-from os import getenv
 import zipfile
 from time import sleep, time
 import requests
@@ -16,9 +15,7 @@ class AppveyorManager(TestManager):
     """ Gets tests artifacts and info from Appveyor """
 
     BASE_URI = "https://ci.appveyor.com/api"
-    INFO_URI = "projects/{}/{}".format(
-        getenv('APPVEYOR_ACCOUNT_NAME'),
-        getenv('APPVEYOR_PROJECT_SLUG'))
+    INFO_URI = "projects/{}/{}"
     ARTIFACT_URI = "buildjobs/{}/artifacts"
     STATE_IDLE = 0
     STATE_RUNNING = 1
@@ -36,14 +33,20 @@ class AppveyorManager(TestManager):
 
         print("Last build {}".format(self.last_build))
         self.state = self.STATE_IDLE
-        self.poll_interval = self.config.get('CI', 'ci_idle_build_poll_interval_seconds')
+        self.poll_interval = self.config.getint('CI', 'ci_idle_build_poll_interval_seconds')
+
+    def info_uri(self):
+        """ Builds the info uri """
+        return self.INFO_URI.format(
+            self.config.get('Appveyor', 'account_name'),
+            self.config.get('Appveyor', 'project_slug'))
 
     def fetch_build_info(self):
         """ Queries API for build info """
         return requests.get(
             "{}/{}".format(
                 self.BASE_URI,
-                self.INFO_URI),
+                self.info_uri()),
             headers=self.headers).json()
 
     def fetch_build_artifacts(self, job_id):
@@ -92,11 +95,11 @@ class AppveyorManager(TestManager):
                 self.log_build()
                 print("Resuming idle state")
                 self.state = self.STATE_IDLE
-                self.poll_interval = self.config.get('CI', 'ci_idle_build_poll_interval_seconds')
+                self.poll_interval = self.config.getint('CI', 'ci_idle_build_poll_interval_seconds')
             else:
                 if self.pending_build != result["build"]["version"]:
                     self.pending_build = result["build"]["version"]
-                    self.poll_interval = self.config.get('CI', 'ci_new_build_poll_interval_seconds')
+                    self.poll_interval = self.config.getint('CI', 'ci_new_build_poll_interval_seconds')
                     print("No artifacts for {} yet".format(self.pending_build))
 
     def run(self):

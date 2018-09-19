@@ -21,7 +21,7 @@ proteus_path=/usr/local/proteus/
 account_name=
 project_slug=
 artifact_path=/usr/local/proteus/appveyor
-build_file=/usr/local/proteus/appveyor/build.txt
+build_file=/usr/local/proteus/build_log.txt
 
 [Tests]
 # Supply the expected number of tests to pass in binfile=<#tests> format
