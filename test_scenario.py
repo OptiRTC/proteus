@@ -1,15 +1,13 @@
 """
 Provides a test framework for complex scenarios
 """
-from os import path
-from queue import Queue
 import sys
 from threading import Thread
 from time import time, sleep
 
-from serial import Serial
 from gpiozero import DigitalOutputDevice
-from proteus.serial_thread import ReadlineSerial
+from proteus.flasher import Flasher
+from proteus.communication import Channel
 
 
 class TestEvent():
@@ -51,33 +49,17 @@ class TestScenario(Thread):
     TIMEOUT = 30
     RST_SETTLE_TIME = 3
     RST_PIN = 23
-    SERIAL_TIMEOUT = 60
-    SERIAL_BAUD = 115200
 
-    def __init__(self, name, port="/dev/ttyACM0"):
+    def __init__(self, name, config):
         super().__init__()
         self.name = name
-        self.messages = Queue()
-        self.writes = Queue()
-        self.port = port
-        self.serial_device = None
-        self.serial_thread = None
+        self.config = config
+        self.channel = Channel.factory(config)
         self.blocked = False
         self.events = []
         self.rst_pin = DigitalOutputDevice(self.RST_PIN, active_high=False)
+        self.check_channel = False
         self.power_cycle()
-        self.open_serial()
-
-    def open_serial(self):
-        """ PRIVATE: Opens the serial interface """
-        while not path.exists(self.port):
-            sleep(1)
-        self.serial_device = Serial(
-            self.port,
-            self.SERIAL_BAUD,
-            timeout=self.SERIAL_TIMEOUT)
-        self.serial_thread = ReadlineSerial(self.serial_device, self.messages, self.writes)
-        self.serial_thread.start()
 
     def test_pass(self):
         """ PRIVATE: Prints a pass message in a format thunder_test understands """
@@ -85,8 +67,7 @@ class TestScenario(Thread):
         print("Test summary: {} passed,"
               " {} failed, and {} skipped,"
               " out of {} tests.".format(1, 0, 0, 1))
-        self.serial_thread.stop()
-        self.serial_device.close()
+        self.channel.close()
         sys.exit(0)
 
     def test_fail(self, assertion):
@@ -96,8 +77,7 @@ class TestScenario(Thread):
         print("Test summary: {} passed,"
               " {} failed, and {} skipped,"
               " out of {} test(s).".format(0, 1, 0, 1))
-        self.serial_thread.stop()
-        self.serial_device.close()
+        self.channel.close()
         sys.exit(1)
 
     def unblock(self):
@@ -117,13 +97,25 @@ class TestScenario(Thread):
     def wait_message(self, message, error_msg="Message Timeout"):
         """ Waits for a specific message on the serial port """
         def _message_wait():
-            if not self.messages.empty():
-                msg = self.messages.get()
-                self.messages.task_done()
+            if not self.channel.input.empty() and self.channel.alive():
+                msg = self.channel.input.get()
+                self.channel.input.task_done()
+                print("Got Message: <{}> vs ({})".format(msg, message))
                 if msg == message:
                     return True
             return False
         event = TestEvent(_message_wait, error_msg)
+        self.events.append(event)
+        return event
+
+    def send_message(self, message, error_msg="Could not send Message"):
+        """ Attempts to send a message to the channel """
+        def _message_send():
+            if self.channel.alive():
+                self.channel.output.put(message)
+                return True
+            return False
+        event = TestEvent(_message_send, error_msg)
         self.events.append(event)
         return event
 
@@ -147,8 +139,8 @@ class TestScenario(Thread):
     def power_off(self):
         """ Drive RST ON """
         def _power_off():
-            self.serial_thread.stop()
-            self.serial_device.close()
+            self.check_channel = False
+            self.channel.close()
             self.rst_pin.on()
             sleep(self.RST_SETTLE_TIME)
             return True
@@ -159,8 +151,9 @@ class TestScenario(Thread):
     def power_on(self):
         """ Drive RST OFF """
         def _power_on():
+            self.check_channel = True
             self.rst_pin.off()
-            self.open_serial()
+            self.channel.open()
             return True
         event = TestEvent(_power_on)
         self.events.append(event)
@@ -169,9 +162,21 @@ class TestScenario(Thread):
     def run(self):
         """ Runs the test """
         print("Starting {}".format(self.name))
+        self.channel.open()
         while self.events:
             if not self.blocked:
                 event = self.events.pop(0)
                 if not self.wait_for(event):
                     self.test_fail(event.error())
+            if self.check_channel and not self.channel.alive():
+                self.test_fail("Unexpected communication failure")
         self.test_pass()
+
+    def flash_firmware(self, binfile, error_msg="Failed to flash"):
+        """ Flashes a bin file to device """
+        flasher = Flasher.factory(binfile, self.config)
+        def _flash_new_fw():
+            flasher.flash()
+        event = TestEvent(_flash_new_fw, error_msg)
+        self.events.append(event)
+        return event

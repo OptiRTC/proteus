@@ -1,13 +1,9 @@
 #!/bin/bash
 
-. /usr/local/bin/proteus-test-daemon/.config
+export PARTICLE_BIN="/home/$USER/bin/particle"
+export PYTHONPATH="$PYTHONPATH:/usr/local/proteus"
 export PYTHONUNBUFFERED=Yes
 
-if [[ -z $CI_API_TOKEN ]]; then
-	echo "CI_API_TOKEN needs to be set in /usr/local/bin/proteus-test-daemon/.config"
-	exit 1
-fi
-
-pushd /usr/local/bin/proteus-test-daemon
+pushd /usr/local/proteus
 ./run_test.py 2>&1 | tee log.txt
 popd

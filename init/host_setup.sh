@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DAEMON_DIR=/usr/local/bin/proteus-test-daemon
+DAEMON_DIR=/usr/local/proteus
 echo "Installing test daemon"
 
 sudo apt-get -qq update -y
@@ -13,16 +13,16 @@ sudo mkdir -p $DAEMON_DIR/proteus || exit 1
 sudo mkdir -p $DAEMON_DIR/bin || exit 1
 sudo chown -R $USER $DAEMON_DIR
 
-sudo cp proteus-test-daemon.service proteus-test-daemon.service.configured
-sed -i "s@User=@User=$USER@g" proteus-test-daemon.service.configured
+sudo cp proteus.service proteus.service.configured
+sed -i "s@User=@User=$USER@g" proteus.service.configured
 
-sudo cp proteus-test-daemon.service.configured /lib/systemd/system/proteus-test-daemon.service || exit 1
-sudo chmod 644 /lib/systemd/system/proteus-test-daemon.service || exit 1
+sudo cp proteus.service.configured /lib/systemd/system/proteus.service || exit 1
+sudo chmod 644 /lib/systemd/system/proteus.service || exit 1
 
 sudo cp ../*.py $DAEMON_DIR/proteus || exit 1
 sudo cp ../LICENSE $DAEMON_DIR || exit 1
 sudo cp -r ../appveyor/ $DAEMON_DIR/proteus || exit 1
-sudo cp -n config.default $DAEMON_DIR/.config || exit 1
+sudo cp -n config.default $DAEMON_DIR/config || exit 1
 sudo cp proteus.sh $DAEMON_DIR || exit 1
 sudo touch $DAEMON_DIR/log.txt || exit 1
 sudo chmod +rw $DAEMON_DIR/log.txt
@@ -44,9 +44,7 @@ curl -sSL -o "$HOME/50-particle.rules" https://docs.particle.io/assets/files/50-
 sudo cp "$HOME/50-particle.rules" "/etc/udev/rules.d/"
 
 sudo systemctl daemon-reload
-sudo systemctl enable proteus-test-daemon.service
+sudo systemctl enable proteus.service
 
-echo "Set these environment variables in /usr/local/bin/proteus-test-daemon/.config"
-echo "PARTICLE_PLATFORM=<electron|photon>"
-echo "CI_API_TOKEN=<api token>"
+echo "Edit /usr/local/proteus/config"
 echo "A reboot is recommended"

@@ -3,25 +3,18 @@
 """
 Facilitates running tests and flashing the device
 """
-from os import getenv, path
+
 import re
-from subprocess import call, Popen, PIPE
+from subprocess import PIPE, Popen
 from time import sleep, time
-from queue import Queue
-import serial
 from junit_xml import TestCase, TestSuite
-from proteus.serial_thread import SerialThread, NewlineThread
+
+from proteus.flasher import Flasher
+from proteus.communication import NewlineChannel
 
 
-class TestRunner():
-    """
-    Flash and collect serial data from a test bin
-    """
-    FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
-    FLASH_BAUD = 14400 # Magic baud from Particle
-    NEUTRAL_BAUD = 9600
-    SERIAL_TIMEOUT = 10
-    # Based on output from particle-unit-test framework
+class TestInstance():
+    """ Runs exactly one test binary"""
     ASSERTION_RE = re.compile(r"^Assertion\s(.+)\:\s(.+)")
     TEST_RE = re.compile(r"^Test\s([a-zA-Z0-9_]+)\s([a-z]+)\.")
     SUMMARY_RE = re.compile(
@@ -29,173 +22,23 @@ class TestRunner():
         r"\s([0-9]+)\sfailed,\sand\s([0-9]+)\s"
         r"skipped,\sout\sof\s([0-9]+)\stest\(s\)\.")
 
-    def __init__(self, port="/dev/ttyACM0", platform="electron"):
-        self.port_name = port
-        self.test_suites = []
-        self.suite_id = 0
-        self.suite_name = None
-        self.platform = platform
+    def __init__(self, suite_id, binfile, expected_tests):
+        self.start = 0
+        self.suite_info = (binfile, suite_id)
+        self.finished = False
+        self.expected_tests = expected_tests
         self.tests = []
         self.assertions = []
-        self.max_retries = 3
-        self.retries = 0
         self.last_test = 0
-        self.start = 0
-        self.test_finished = False
 
-    def wait_for_serial(self):
-        start = time()
-        while not path.exists(self.port_name):
-            sleep(1)
-            if (time() - start) > self.FLASH_WAIT_TIME:
-                break
+    def name(self):
+        """ Builds formatted name string """
+        return "{}_test{}".format(self.suite_info[0], self.suite_info[1])
 
-    def set_flash_mode(self):
-        """ Put particle device into DFU mode via magic baud """
-        self.wait_for_serial()
-        try:
-            ser = serial.Serial(self.port_name, self.FLASH_BAUD)
-            ser.close()
-            ser = serial.Serial(self.port_name, self.NEUTRAL_BAUD)
-            ser.close()
-        except serial.SerialException:
-            return
-
-    def flash(self, binfile):
-        """ Flashes firmware <binfile> to device """
-        flash_cmd = "{} flash --usb {}".format(
-            getenv(
-                "PARTICLE_BIN",
-                "/usr/bin/particle"),
-            binfile)
-        self.suite_name = binfile
-        print("Flashing {}".format(binfile))
-        self.set_flash_mode()
-        sleep(self.FLASH_WAIT_TIME)
-        while call(["/bin/sh", "-c", flash_cmd]) != 0:
-            self.set_flash_mode()
-            sleep(self.FLASH_WAIT_TIME)
-
-    def serial_setup(self):
-        """ Wait for port to exist and be openable """
-        ser = None
-        self.wait_for_serial()
-        while ser is None:
-            try:
-                ser = serial.Serial(
-                    self.port_name,
-                    self.NEUTRAL_BAUD,
-                    timeout=self.SERIAL_TIMEOUT)
-                ser.close()
-                break
-            except serial.SerialException:
-                ser = None
-                sleep(self.FLASH_WAIT_TIME)
-            except IOError:
-                ser = None
-                sleep(self.FLASH_WAIT_TIME)
-
-    def scan_test(self):
-        """ Scrape serial port to memory buffer """
-        self.serial_setup()
-        with serial.Serial(
-                self.port_name,
-                self.NEUTRAL_BAUD,
-                timeout=60) as ser:
-
-            byte_queue = Queue()
-            line_queue = Queue()
-            write_queue = Queue()
-            reader = SerialThread(ser, byte_queue, write_queue)
-            line_parser = NewlineThread(byte_queue, line_queue)
-            reader.start()
-            line_parser.start()
-            ser.flushInput()
-            ser.flushOutput()
-            while ser.isOpen() or not line_queue.empty():
-                if line_queue.empty():
-                    continue
-                line = line_queue.get()
-                line_queue.task_done()
-                self.parse_line(time(), line)
-                if line == "Ready":
-                    # Write a ascii t to start the tests
-                    write_queue.put("t\r\n".encode())
-                    self.start = time()
-                    self.last_test = self.start
-                if line == "Starting in DFU mode" or not ser.isOpen():
-                    # This message happens on reboot/test end
-                    break
-            reader.stop()
-            reader.join()
-            line_parser.stop()
-            line_parser.join()
-            ser.close()
-
-    def run_test_suite(self, binfile):
-        """ Run a test suite with retries """
-        result = False
-        while result is False:
-            self.retries += 1
-            if self.retries >= self.max_retries:
-                break 
-            self.flash(binfile)
-            sleep(self.FLASH_WAIT_TIME)
-            self.test_finished = False
-            try:
-                self.suite_name = "{}_test{}".format(binfile, self.suite_id)
-                self.scan_test()
-                result = True
-            except serial.SerialException:
-                pass
-        self.finish_suite(len(self.tests))
-        self.suite_id += 1
-        self.retries = 0
-
-    def run_test_scenario(self, scenario, binfile):
-        """ Run a test scenario with retries """
-        result = False
-        while result is False:
-            self.retries += 1
-            if self.retries >= self.max_retries:
-                break
-            self.flash(binfile)
-            sleep(self.FLASH_WAIT_TIME)
-        self.suite_name = "{}_{}_{}".format(binfile, scenario, self.suite_id)
-        self.test_finished = False
+    def start_test(self):
+        """ Starts test at now """
         self.start = time()
         self.last_test = self.start
-        process = Popen([scenario + '.py'], stdout=PIPE)
-        for line in iter(process.stdout.readline, b''):
-            if line:
-                print(line)
-                self.parse_line(time(), line.decode('utf-8'))
-        self.finish_suite(len(self.tests))
-        self.suite_id += 1
-        self.retries = 0
-
-    def finish_suite(self, total, timestamp=None):
-        """ Closes a test suite """
-        if self.test_finished:
-            return
-        if timestamp is None:
-            timestamp = time()
-        print("Processed {}/{} tests".format(len(self.tests), total))
-        if len(self.tests) != total:
-            print("Dropped {}!".format(total - len(self.tests)))
-        self.test_suites.append(TestSuite(
-            self.suite_name,
-            self.tests,
-            None,
-            self.suite_id,
-            None,
-            timestamp)) #Timestamp
-        self.tests = []
-        self.test_finished = True
-
-    def get_xml(self):
-        """ Render XML """
-        return TestSuite.to_xml_string(self.test_suites)
 
     def parse_line(self, timestamp, line):
         """ Read a logfile and parse """
@@ -213,7 +56,7 @@ class TestRunner():
                 test_name))
             test_case = TestCase(
                 name=test_name,
-                classname=self.suite_name, # classname
+                classname=self.name(),
                 elapsed_sec=timestamp - self.last_test, # Duration
                 stdout=self.assertions,
                 stderr=None,
@@ -231,6 +74,92 @@ class TestRunner():
             return
         result = self.SUMMARY_RE.match(line)
         if result:
-            total = int(result.group(4))
-            self.finish_suite(total, timestamp)
-            return
+            total = max(self.expected_tests, int(result.group(4)))
+            if total != len(self.tests):
+                print("ERROR: Dropped {} tests".format(total - len(self.tests)))
+                dropped = total - len(self.tests)
+                while dropped > 0:
+                    self.tests.append(TestCase(
+                        name="Unknown dropped test",
+                        classname=self.name(),
+                        elapsed_sec=0,
+                        stderr="ERROR: Test missing",
+                        timestamp=time(),
+                        status="skipped"))
+                    dropped -= 1
+            self.finished = True
+
+    def finish(self):
+        """ Closes a test suite """
+        self.finished = True
+        return TestSuite(
+            self.name(),
+            self.tests,
+            None,
+            self.suite_info[1],
+            None,
+            time())
+
+
+class TestRunner():
+    """
+    Flash and collect serial data from a test bin
+    """
+    SERIAL_WAIT_SEC = 6
+    SERIAL_TIMEOUT = 10
+    MAX_RETRIES = 3
+    # Based on output from spark-unit-test framework
+
+    def __init__(self, config):
+        self.config = config
+        self.channel = NewlineChannel.factory(config)
+        self.test_suites = []
+        self.suite_id = 0
+        self.platform = config.get('Host', 'platform')
+        self.retries = 0
+
+    def comm_setup(self):
+        """ Wait for port to exist and be openable """
+        sleep(self.SERIAL_WAIT_SEC)
+        while not self.channel.open():
+            sleep(self.SERIAL_WAIT_SEC)
+
+    def run_test_suite(self, binfile, expected_tests):
+        """ Run a test suite with retries """
+        test = TestInstance(self.suite_id, binfile, expected_tests)
+        flasher = Flasher.factory(binfile, self.config)
+        flasher.flash()
+        self.comm_setup()
+        while self.channel.alive() or not self.channel.input.empty():
+            if self.channel.input.empty():
+                continue
+            line = self.channel.input.get()
+            self.channel.input.task_done()
+            test.parse_line(time(), line)
+            if line == "Ready":
+                # Write a ascii t to start the tests
+                self.channel.output.put("t\r\n".encode())
+                test.start_test()
+            if line == "Starting in DFU mode":
+                # This message happens on reboot/test end
+                break
+        self.channel.close()
+        self.test_suites.append(test.finish())
+        self.suite_id += 1
+        self.retries = 0
+
+    def run_test_scenario(self, scenario, binfile):
+        """ Run a test scenario with retries """
+        test = TestInstance(self.suite_id, binfile, 1)
+        test.start_test()
+        with Popen([scenario + '.py'], stdout=PIPE) as process:
+            for line in iter(process.stdout.readline, b''):
+                if line:
+                    test.parse_line(time(), line.decode('utf-8'))
+        self.test_suites.append(test.finish())
+        self.suite_id += 1
+        self.retries = 0
+
+    def get_xml(self):
+        """ Render XML """
+        return TestSuite.to_xml_string(self.test_suites)

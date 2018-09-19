@@ -1,0 +1,30 @@
+[CI]
+# Suports Appveyor
+ci_platform=DUMMY
+ci_api_token=DUMMY
+
+[Host]
+# Supports photon, electron, and test
+platform=test
+serial_port=/dev/ttyACM0
+bin_path=bin/${platform}/
+result_prefix=proteus_test
+proteus_path=/usr/local/proteus
+particle_bin=/usr/bin/particle
+
+[Appveyor]
+# Only used when CI_PLATFORM is set to APPVEYOR
+appveyor_account_name=myaccount
+appveyor_project_slug=myproject
+artifact_path=build
+build_file=lastbulid.txt
+
+[Tests]
+# Supply the expected number of tests to pass in binfile=<#tests> format
+test=1
+integration_test=10
+dummy_test=5
+
+[Scenarios]
+user_app=DUMMY
+scenario_path=tests/scenarios

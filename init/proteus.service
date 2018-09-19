@@ -8,7 +8,7 @@ Type=simple
 Restart=on-failure
 RestartSec=5s
 User=
-ExecStart=/usr/local/bin/proteus-test-daemon/proteus.sh
+ExecStart=/usr/local/proteus/proteus.sh
 
 [Install]
 WantedBy=multi-user.target

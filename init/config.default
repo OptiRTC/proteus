@@ -1,15 +1,34 @@
 # config.default
-# copy to /usr/local/bin/proteus-test-daemon/.config and edit
+# copy to /usr/local/proteus/config and edit
 
-# ========== Generic config ==========
-export PARTICLE_BIN="/home/pi/bin/particle"
-export PYTHONPATH="$PYTHONPATH:/usr/local/bin/proteus-test-daemon"
-export CI_API_TOKEN=""
-export PARTICLE_PLATFORM=""
-# Supports: APPVEYOR
-export CI_PLATFORM="APPVEYOR"
+[CI]
+# Suports Appveyor
+ci_platform=APPVEYOR
+ci_api_token=<your token>
+ci_idle_build_poll_interval_seconds=600
+ci_new_build_poll_interval_seconds=180
 
-# ========== Appveyor config ===========
+[Host]
+# Supports photon and electron
+platform=photon
+serial_port=/dev/ttyACM0
+bin_path=bin/${platform}/
+result_prefix=test_results
+proteus_path=/usr/local/proteus/
+
+[Appveyor]
 # Only used when CI_PLATFORM is set to APPVEYOR
-#export APPVEYOR_ACCOUNT_NAME=""
-#export APPVEYOR_PROJECT_SLUG=""
+account_name=
+project_slug=
+artifact_path=/usr/local/proteus/appveyor
+build_file=/usr/local/proteus/appveyor/build.txt
+
+[Tests]
+# Supply the expected number of tests to pass in binfile=<#tests> format
+test=1
+integration_test=10
+dummy_test=5
+
+[Scenarios]
+user_app=user.bin
+scenario_path=scenarios

@@ -16,10 +16,10 @@ See the `appveyor.yml.example` for guidence on how to integrate proteus with app
 
 ## Installation
 - Select a host platform (debian linux based)
-- Edit `init/proteus-test-daemon.service` with the user and group to run the daemon, making any other changes specific to your system. If you are not using systemd you will need to port the configuration to your init system.
-- Run `init/host_setup.sh` to install prereqs, daemon, and copy data to `/usr/local/bin/proteus-test-daemon/`, check that no errors occur.
-- Edit `.config` in `/usr/local/bin/proteus-test-daemon/` with your CI API key and any other custom settings.
-- Modify `run_test.py` in the proteus-test-daemon folder or modify `proteus.sh` to run your master test file. (See run_test.py.example for a starting point)
+- Edit `init/proteus.service` with the user and group to run the daemon, making any other changes specific to your system. If you are not using systemd you will need to port the configuration to your init system.
+- Run `init/host_setup.sh` to install prereqs, daemon, and copy data to `/usr/local/proteus/`, check that no errors occur.
+- Edit `.config` in `/usr/local/proteus/` with your CI API key and any other custom settings.
+- Modify `run_test.py` in the proteus folder or modify `proteus.sh` to run your master test file. (See run_test.py.example for a starting point)
 - Author any test-scenarios that are required (Power Cycle or other external-excitation test). TestScenario may be used as a base class for proprietary extesnions (see `test_scenario.py`). 
 
 ### Test Scenarios
@@ -28,8 +28,14 @@ The TestScenario call can be extended to support REST calls for cloud based-conf
 ## Running Proteus
 The host setup script will install and enable the daemon. Be sure to connect your hardware platform under test via USB to your test platform. Proteus will check CI for new builds at a set interval and automatically download tests, execute them, and report the test results to CI (they will also be saved as an XML file, but will be overwritten when new builds are available).
 
+## Testing Proteus
+Using linux the `test.sh` files are designed to emulate a python library installation for proteus (they add the appropriate folders to PYTHONPATH and setup some additional PATH for python and it's subshells). It should be possible to run any test.sh folder from the `proteus` root directory.
+
 ## Troubleshooting
-Proteus generates a `log.txt` file in the proteus-test-daemon directory. The output of this file can point to misconfigurations or failures in a test. Crash reports and exceptions encountered while running tests will appear in this file.
+Proteus generates a `log.txt` file in the proteus directory. The output of this file can point to misconfigurations or failures in a test. Crash reports and exceptions encountered while running tests will appear in this file.
 
 ## Contributing
-Adding new functionality to Proteus is easy. Simply fork the repo, make your changes, and create a pull request against the master directory. Include any and all testing done in the PR.
+Proteus is maintained by OptiRTC. Please use GitHub issues to request features and log bugs. Each logged bug or feature should link to a PR containing any code changes requested (please do not expect the Opti team to provide non-critical development). Before creating a PR please ensure your changes pass the unit and integration tests.
+
+Do not alter test via a PR, Instead add a new test that includes additional assertions.
+PRs without passing tests will be rejected. Issues without a linked PR will not be prioritized by OptiRTC.
