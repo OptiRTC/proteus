@@ -13,6 +13,9 @@ from serial import SerialException, Serial
 
 class Channel():
     """ A generic buffered channel using concurrent queues """
+
+    TIMEOUT = 60
+
     def __init__(self):
         # Paradigm: GET from input (stdin)
         self.input = Queue()
@@ -50,7 +53,6 @@ class SerialChannel(Channel):
     """ A channel using configured TTY serial """
 
     BAUD = 115200
-    TIMEOUT = 60
 
     def __init__(self, config):
         super().__init__()
@@ -59,6 +61,8 @@ class SerialChannel(Channel):
 
     def open(self):
         """ Open the serial device """
+        if self.alive():
+            return True
         port = self.config.get('Host', 'serial_port')
         if not path.exists(port):
             print("Port {} does not exist".format(port))
@@ -71,18 +75,20 @@ class SerialChannel(Channel):
             self.thread = SerialThread(self.device, self.input, self.output)
             self.thread.start()
             return True
-        except SerialException:
-            print("SerialException attempting to open {}".format(port))
+        except SerialException as ser_ex:
+            print("SerialException: {}".format(str(ser_ex)))
             return False
-        except IOError:
-            print("IOError attempting to open {}".format(port))
+        except IOError as io_ex:
+            print("IOError: {}".format(str(io_ex)))
             return False
 
     def close(self):
         """ Stops thread and closes device """
-        self.thread.stop()
-        self.thread.join()
-        self.device.close()
+        if self.thread:
+            self.thread.stop()
+            self.thread.join()
+        if self.device:
+            self.device.close()
         self.device = None
 
     def alive(self):
@@ -100,6 +106,8 @@ class NewlineChannel(SerialChannel):
 
     def open(self):
         """ Open the serial device """
+        if self.alive():
+            return True
         if not path.exists(self.config.get('Host', 'serial_port')):
             return False
         try:
@@ -112,9 +120,11 @@ class NewlineChannel(SerialChannel):
             self.thread.start()
             self.newline_detector.start()
             return True
-        except SerialException:
+        except SerialException as ser_ex:
+            print("SerialException: {}".format(str(ser_ex)))
             return False
-        except IOError:
+        except IOError as io_ex:
+            print("IOError: {}".format(str(io_ex)))
             return False
 
     def alive(self):
@@ -127,11 +137,14 @@ class NewlineChannel(SerialChannel):
 
     def close(self):
         """ Cleans up threads and devices """
-        self.thread.stop()
-        self.thread.join()
-        self.newline_detector.stop()
-        self.newline_detector.join()
-        self.device.close()
+        if self.thread:
+            self.thread.stop()
+            self.thread.join()
+        if self.newline_detector:
+            self.newline_detector.stop()
+            self.newline_detector.join()
+        if self.device:
+            self.device.close()
         self.device = None
 
     @staticmethod
@@ -193,10 +206,10 @@ class SerialThread(StopSignalThread):
                 self.connection.read(
                     max(1,
                         self.connection.inWaiting())))
-        except SerialException:
-            self.connection.close()
-            self._req_stop.set()
-            return            
+        except SerialException as ser_ex:
+            print("SerialException: {}".format(str(ser_ex)))
+            self.stop()
+            return
 
 
 class NewlineThread(StopSignalThread):

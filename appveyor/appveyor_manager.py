@@ -89,7 +89,9 @@ class AppveyorManager(TestManager):
                 self.state = self.STATE_RUNNING
                 job_id = result["build"]["jobs"][0]["jobId"]
                 self.fetch_build_artifacts(job_id)
-                self.run_tests("test_results_{}.xml".format(time()))
+                self.run_tests("{}_{}.xml".format(
+                    self.config.get('Host', 'result_prefix'),
+                    time()))
                 self.publish_tests(job_id, "test_results.xml")
                 self.last_build = result["build"]["version"]
                 self.log_build()
@@ -99,7 +101,9 @@ class AppveyorManager(TestManager):
             else:
                 if self.pending_build != result["build"]["version"]:
                     self.pending_build = result["build"]["version"]
-                    self.poll_interval = self.config.getint('CI', 'ci_new_build_poll_interval_seconds')
+                    self.poll_interval = self.config.getint(
+                        'CI',
+                        'ci_new_build_poll_interval_seconds')
                     print("No artifacts for {} yet".format(self.pending_build))
 
     def run(self):

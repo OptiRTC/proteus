@@ -12,9 +12,10 @@ ci_new_build_poll_interval_seconds=180
 # Supports photon and electron
 platform=photon
 serial_port=/dev/ttyACM0
-bin_path=bin/${platform}/
+bin_path=bin/%(platform)s/
 result_prefix=test_results
 proteus_path=/usr/local/proteus/
+particle_bin=/usr/bin/particle
 
 [Appveyor]
 # Only used when CI_PLATFORM is set to APPVEYOR

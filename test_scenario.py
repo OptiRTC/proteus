@@ -7,7 +7,7 @@ from time import time, sleep
 
 from gpiozero import DigitalOutputDevice
 from proteus.flasher import Flasher
-from proteus.communication import Channel
+from proteus.communication import Channel, NewlineChannel
 
 
 class TestEvent():
@@ -54,7 +54,7 @@ class TestScenario(Thread):
         super().__init__()
         self.name = name
         self.config = config
-        self.channel = Channel.factory(config)
+        self.channel = NewlineChannel.factory(config)
         self.blocked = False
         self.events = []
         self.rst_pin = DigitalOutputDevice(self.RST_PIN, active_high=False)
@@ -100,7 +100,6 @@ class TestScenario(Thread):
             if not self.channel.input.empty() and self.channel.alive():
                 msg = self.channel.input.get()
                 self.channel.input.task_done()
-                print("Got Message: <{}> vs ({})".format(msg, message))
                 if msg == message:
                     return True
             return False
@@ -153,8 +152,7 @@ class TestScenario(Thread):
         def _power_on():
             self.check_channel = True
             self.rst_pin.off()
-            self.channel.open()
-            return True
+            return self.channel.open()
         event = TestEvent(_power_on)
         self.events.append(event)
         return event
@@ -162,13 +160,20 @@ class TestScenario(Thread):
     def run(self):
         """ Runs the test """
         print("Starting {}".format(self.name))
-        self.channel.open()
+        binfile = self.config.get('Scenarios', 'user_app')
+        flasher = Flasher.factory(binfile, self.config)
+        flasher.flash()
+        sleep(flasher.FLASH_WAIT_TIME)
+        start = time()
+        while not self.channel.open() and (time() - start) < self.channel.TIMEOUT:
+            sleep(flasher.FLASH_WAIT_TIME)
         while self.events:
             if not self.blocked:
                 event = self.events.pop(0)
                 if not self.wait_for(event):
                     self.test_fail(event.error())
             if self.check_channel and not self.channel.alive():
+                self.channel.close()
                 self.test_fail("Unexpected communication failure")
         self.test_pass()
 
@@ -176,7 +181,11 @@ class TestScenario(Thread):
         """ Flashes a bin file to device """
         flasher = Flasher.factory(binfile, self.config)
         def _flash_new_fw():
+            self.channel.close()
             flasher.flash()
+            start = time()
+            while not self.channel.open() and (time() - start) < self.channel.TIMEOUT:
+                sleep(flasher.FLASH_WAIT_TIME)
         event = TestEvent(_flash_new_fw, error_msg)
         self.events.append(event)
         return event

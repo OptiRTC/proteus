@@ -14,7 +14,7 @@ from proteus.test_runner import TestRunner
 class TestManager():
     """ Runs tests on device """
 
-    DEFAULT_CONFIGFILE = '/usr/local/proteus/config'
+    DEFAULT_CONFIGFILE = 'init/config.default'
 
     def __init__(self,
                  configfile=None):

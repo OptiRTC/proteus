@@ -11,6 +11,8 @@ import serial
 
 class Flasher():
     """ Base class / test mockup """
+    FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
+    MAX_RETRIES = 3
 
     def __init__(self, binfile, config):
         self.binfile = binfile
@@ -39,11 +41,10 @@ class Flasher():
 
 class ParticleFlasher(Flasher):
     """ Flashes firmware to particle platforms """
-    FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
+    
     FLASH_BAUD = 14400 # Magic baud from Particle
     NEUTRAL_BAUD = 9600
     SERIAL_TIMEOUT = 10
-    MAX_RETRIES = 3
 
     def __init__(self, binfile, config):
         super().__init__(binfile, config)
