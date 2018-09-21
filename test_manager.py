@@ -32,7 +32,7 @@ class TestManager():
             for binfile in self.config['Tests']:
                 self.expect_tests(binfile, int(self.config['Tests'][binfile]))
         self.destructive_tests = False
-        self.scenarios = [] 
+        self.scenarios = []
 
     def add_test(self, test_bin):
         """ Adds a test binary to be run """
@@ -87,7 +87,7 @@ class TestManager():
             self.run_tests("{}_{}.xml".format(
                 self.config.get('Host', 'result_prefix'),
                 time()))
-        except: #  pylint: disable=W0702
+        except:  # pylint: disable=W0702
             sleep(30)
             sys.exit(1)
 

@@ -11,6 +11,7 @@ from queue import Queue
 from threading import Thread, Event
 from serial import SerialException, Serial
 
+
 class Channel():
     """ A generic buffered channel using concurrent queues """
 
@@ -48,6 +49,7 @@ class Channel():
         if config.get('Host', 'platform') == 'test':
             return Channel()
         return SerialChannel(config)
+
 
 class SerialChannel(Channel):
     """ A channel using configured TTY serial """
@@ -163,7 +165,7 @@ class StopSignalThread(Thread):
     def run(self):
         """ Runs the thread until stop is set """
         while not self._req_stop.is_set():
-            self.exec() #pylint: disable=E1101
+            self.exec()  # pylint: disable=E1101
 
     def stop(self):
         """ Signals the thread to stop """

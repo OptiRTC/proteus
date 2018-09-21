@@ -35,7 +35,8 @@ Using linux the `test.sh` files are designed to emulate a python library install
 Proteus generates a `log.txt` file in the proteus directory. The output of this file can point to misconfigurations or failures in a test. Crash reports and exceptions encountered while running tests will appear in this file.
 
 ## Contributing
-Proteus is maintained by OptiRTC. Please use GitHub issues to request features and log bugs. Each logged bug or feature should link to a PR containing any code changes requested (please do not expect the Opti team to provide non-critical development). Before creating a PR please ensure your changes pass the unit and integration tests.
+Proteus is maintained by OptiRTC, although no FTE is dedicated to the project and development in the near-future is conducted as our needs for CI with Particle grow. 
 
-Do not alter test via a PR, Instead add a new test that includes additional assertions.
-PRs without passing tests will be rejected. Issues without a linked PR will not be prioritized by OptiRTC.
+Please use GitHub issues to log bugs. If you are able to find a bug and fix it, please create and link to a PR containing any code changes requested. Before creating a PR please ensure your changes pass the unit and integration tests. One of these tests includes a check that your code is compliant with [PEP8](https://www.python.org/dev/peps/pep-0008/) standards - please adhere to them in all submissions you make.
+
+If you have an additional feature to add to Proteus, please create a PR and submit it to Opti. Opti will review new features and interact with authors on finalizing any new features before accepting them into the project on a recurring basis.

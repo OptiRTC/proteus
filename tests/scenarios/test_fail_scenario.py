@@ -3,13 +3,14 @@
 Fails a test scenario
 """
 
-from proteus.test_scenario import TestScenario
 from configparser import ConfigParser
-config = ConfigParser()
-config.read('tests/test_config')
+from proteus.test_scenario import TestScenario
+
+CONFIG = ConfigParser()
+CONFIG.read('tests/test_config')
 
 FAILURE_TEST = TestScenario(
-    "FailTest", config)
+    "FailTest", CONFIG)
 FAILURE_TEST.wait_seconds(2).expect(
     False,
     "Expected Failure")

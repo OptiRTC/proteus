@@ -10,6 +10,7 @@ from threading import Thread
 
 from proteus.test_runner import TestInstance, TestRunner
 
+
 class TestInstanceTest(unittest.TestCase):
     """ Tests TestInstance for basic function """
 

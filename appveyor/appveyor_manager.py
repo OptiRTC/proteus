@@ -22,7 +22,7 @@ class AppveyorManager(TestManager):
 
     def __init__(self, configfile):
         super().__init__(configfile)
-        self.headers = {'Authorization' : 'Bearer {}'.format(
+        self.headers = {'Authorization': 'Bearer {}'.format(
             self.config.get('CI', 'ci_api_token'))}
         self.poller = None
         self.last_build = ""

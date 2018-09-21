@@ -4,6 +4,7 @@ import unittest
 
 from proteus.test_manager import TestManager
 
+
 class TestManagerTest(unittest.TestCase):
     """ Tests TestInstance for basic function """
 

@@ -9,7 +9,7 @@ from time import sleep, time
 import requests
 
 HEADERS = {
-    'Authorization' : 'Bearer {}'.format(
+    'Authorization': 'Bearer {}'.format(
         getenv('APPVEYOR_TOKEN'))}
 BASE_URI = "https://ci.appveyor.com/api"
 INFO_URI = "projects/{}/{}/build/{}".format(
@@ -24,6 +24,7 @@ TEST_POLL_INTERVAL = 30
 # out of sync, give them some time to sync up
 TEST_UPLOAD_INTERVAL = 60
 
+
 def fetch_test_info():
     """ Queries API for test info """
     return requests.get(
@@ -31,6 +32,7 @@ def fetch_test_info():
             BASE_URI,
             INFO_URI),
         headers=HEADERS).json()
+
 
 def fetch_test_results():
     """ Downloads and unzips build artifacts """

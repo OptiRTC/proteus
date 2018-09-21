@@ -10,4 +10,5 @@ pushd "$(dirname "$0")"
 ./tests/test_runner_test.py
 ./tests/test_manager_test.py
 ./tests/test_scenario_test.py
+./tests/test_code_style.py
 popd

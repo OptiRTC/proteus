@@ -7,6 +7,7 @@ from pty import openpty
 from proteus.test_scenario import TestEvent, TestScenario
 from proteus.test_manager import TestManager
 
+
 class TestEventTest(unittest.TestCase):
     """ Tests TestEvent """
 
@@ -18,12 +19,13 @@ class TestEventTest(unittest.TestCase):
         self.assertFalse(fixture.run())
         self.assertEqual(fixture.error(), "Assertion: Not False")
 
+
 class TestScenarioTest(unittest.TestCase):
     """ Tests a basic scenario """
 
     def test_scenarios(self):
         """ Runs end-to-end integration on scenarios with known state """
-        fixture = TestManager('tests/test_config')       
+        fixture = TestManager('tests/test_config')
         fixture.add_scenario("test_pass_scenario")
         fixture.add_scenario("test_fail_scenario")
         fixture.add_scenario("test_wait_message_scenario")

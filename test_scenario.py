@@ -6,7 +6,7 @@ from threading import Thread
 from time import time, sleep
 
 from gpiozero import DigitalOutputDevice
-from proteus.flasher import Flasher
+from proteus.flasher import BaseFlasher
 from proteus.communication import Channel, NewlineChannel
 
 
@@ -161,7 +161,7 @@ class TestScenario(Thread):
         """ Runs the test """
         print("Starting {}".format(self.name))
         binfile = self.config.get('Scenarios', 'user_app')
-        flasher = Flasher.factory(binfile, self.config)
+        flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()
         sleep(flasher.FLASH_WAIT_TIME)
         start = time()
@@ -179,7 +179,8 @@ class TestScenario(Thread):
 
     def flash_firmware(self, binfile, error_msg="Failed to flash"):
         """ Flashes a bin file to device """
-        flasher = Flasher.factory(binfile, self.config)
+        flasher = BaseFlasher.factory(binfile, self.config)
+
         def _flash_new_fw():
             self.channel.close()
             flasher.flash()

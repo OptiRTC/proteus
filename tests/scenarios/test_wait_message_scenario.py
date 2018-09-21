@@ -2,16 +2,19 @@
 """
 Fails a test scenario
 """
+
 from configparser import ConfigParser
 from proteus.test_scenario import TestScenario, TestEvent
 
-config = ConfigParser()
-config.read('tests/test_config')
+CONFIG = ConfigParser()
+CONFIG.read('tests/test_config')
 
 MSG_TEST = TestScenario(
-    "MsgTest", config)
-# Inject message directly into queue
+    "MsgTest", CONFIG)
+
+
 def _inject_message():
+    """ Test function to inject a message """
     MSG_TEST.channel.input.put("Pass")
     return True
 

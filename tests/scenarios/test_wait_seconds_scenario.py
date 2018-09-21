@@ -7,14 +7,17 @@ from configparser import ConfigParser
 from time import time
 from proteus.test_scenario import TestScenario, TestEvent
 
-config = ConfigParser()
-config.read('tests/test_config')
+CONFIG = ConfigParser()
+CONFIG.read('tests/test_config')
 
 WAIT_TEST = TestScenario(
-    "WaitTest", config)
+    "WaitTest", CONFIG)
 START = None
 WAIT_TEST.wait_seconds(20)
+
+
 def _time_check():
+    """ Perform a time check """
     if time() - START >= 20:
         return True
     return False

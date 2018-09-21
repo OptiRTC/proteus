@@ -9,24 +9,24 @@ from time import sleep, time
 import serial
 
 
-class Flasher():
+class BaseFlasher():
     """ Base class / test mockup """
-    FLASH_WAIT_TIME = 6 # Experimentally determined on Ubuntu VM
+    FLASH_WAIT_TIME = 6  # Experimentally determined on Ubuntu VM
     MAX_RETRIES = 3
 
     def __init__(self, binfile, config):
         self.binfile = binfile
         self.config = config
 
-    def wait_for_serial(self): #pylint:disable=R0201
+    def wait_for_serial(self):  # pylint:disable=R0201
         """ Blocks until serial port exists and is ready """
         return True
 
-    def set_flash_mode(self): #pylint:disable=R0201
+    def set_flash_mode(self):  # pylint:disable=R0201
         """ Puts the device into flash mode """
         return True
 
-    def flash(self): #pylint:disable=R0201
+    def flash(self):  # pylint:disable=R0201
         """ Stubbed out flash command """
         return True
 
@@ -36,13 +36,13 @@ class Flasher():
         platform = config.get('Host', 'platform')
         if platform in ('photon', 'electron'):
             return ParticleFlasher(binfile, config)
-        return Flasher(binfile, config)
+        return BaseFlasher(binfile, config)
 
 
-class ParticleFlasher(Flasher):
+class ParticleFlasher(BaseFlasher):
     """ Flashes firmware to particle platforms """
-    
-    FLASH_BAUD = 14400 # Magic baud from Particle
+
+    FLASH_BAUD = 14400  # Magic baud from Particle
     NEUTRAL_BAUD = 9600
     SERIAL_TIMEOUT = 10
 

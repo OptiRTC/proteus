@@ -9,7 +9,7 @@ from subprocess import PIPE, Popen
 from time import sleep, time
 from junit_xml import TestCase, TestSuite
 
-from proteus.flasher import Flasher
+from proteus.flasher import BaseFlasher
 from proteus.communication import NewlineChannel
 
 
@@ -57,11 +57,11 @@ class TestInstance():
             test_case = TestCase(
                 name=test_name,
                 classname=self.name(),
-                elapsed_sec=timestamp - self.last_test, # Duration
+                elapsed_sec=timestamp - self.last_test,  # Duration
                 stdout=self.assertions,
                 stderr=None,
                 assertions=len(self.assertions),
-                timestamp=timestamp, # Timestamp
+                timestamp=timestamp,
                 status=test_status)
             if test_status == "failed":
                 test_case.add_failure_info(
@@ -127,7 +127,7 @@ class TestRunner():
     def run_test_suite(self, binfile, expected_tests):
         """ Run a test suite with retries """
         test = TestInstance(self.suite_id, binfile, expected_tests)
-        flasher = Flasher.factory(binfile, self.config)
+        flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()
         self.comm_setup()
         while self.channel.alive() or not self.channel.input.empty():

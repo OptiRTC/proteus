@@ -51,7 +51,7 @@ class TestChannel(unittest.TestCase):
         self.assertFalse(chan.input.empty())
         echo = chan.input.get()
         chan.input.task_done()
-        self.assertTrue(type(chan) is Channel) #pylint:disable=C0123
+        self.assertTrue(type(chan) is Channel)  # pylint:disable=C0123
         self.assertEqual(echo, "Hello")
         chan.close()
 
@@ -64,7 +64,7 @@ class TestChannel(unittest.TestCase):
         slavetty = thread.open()
         thread.start()
         config.set('Host', 'serial_port', slavetty)
-        
+
         ser = SerialChannel(config)
         self.assertTrue(ser.open())
         self.assertTrue(ser.alive())
