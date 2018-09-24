@@ -177,7 +177,10 @@ class StopSignalThread(Thread):
 
 
 class LoopbackThread(StopSignalThread):
-    """ Loops back any input to the output """
+    """ 
+    Loops back any input to the output. Use for testing channel
+    and thread APIs.
+    """
     def __init__(self, input_queue, output_queue):
         super().__init__()
         self.input = input_queue
