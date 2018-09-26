@@ -13,6 +13,7 @@ Ensure all test binaries are built and packaged as artifacts in a zip file.
 It is recommended that binaries follow a `bin/<platform>/<bin_name>.bin` structure. If your CI has an API key record it and save it for use later in this process.
 Your on-device tests should be authored with [spark-unit-test](https://github.com/m-mcgowan/spark-unit-test), and should report the results of each test (including assertions) to the serial port (USB Serial) of the test platform.
 See the `appveyor.yml.example` for guidance on how to integrate Proteus with appveyor.yml in your repo.
+Python dependencies can be installed via `pip3 -r requirements.txt`.
 
 ## Installation
 - Select a host platform (Debian Linux based)
