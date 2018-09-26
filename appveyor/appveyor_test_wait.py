@@ -4,25 +4,26 @@
 Causes appveyor to wait for testing
 """
 
-import os
+from os import getenv
 from time import sleep, time
 import requests
 
 HEADERS = {
-    'Authorization' : 'Bearer {}'.format(
-        os.environ['APPVEYOR_TOKEN'])}
+    'Authorization': 'Bearer {}'.format(
+        getenv('APPVEYOR_TOKEN'))}
 BASE_URI = "https://ci.appveyor.com/api"
 INFO_URI = "projects/{}/{}/build/{}".format(
-    os.environ["APPVEYOR_ACCOUNT_NAME"],
-    os.environ["APPVEYOR_PROJECT_SLUG"],
-    os.environ["APPVEYOR_BUILD_VERSION"])
+    getenv("APPVEYOR_ACCOUNT_NAME"),
+    getenv("APPVEYOR_PROJECT_SLUG"),
+    getenv("APPVEYOR_BUILD_VERSION"))
 MESSAGE_URI = "build/messages"
-TEST_TIMEOUT = 600
+TEST_TIMEOUT = 1200
 TEST_BACKOFF = 30
 TEST_POLL_INTERVAL = 30
 # Test runners can be up to POLL_INTERVAL
 # out of sync, give them some time to sync up
 TEST_UPLOAD_INTERVAL = 60
+
 
 def fetch_test_info():
     """ Queries API for test info """
@@ -31,6 +32,7 @@ def fetch_test_info():
             BASE_URI,
             INFO_URI),
         headers=HEADERS).json()
+
 
 def fetch_test_results():
     """ Downloads and unzips build artifacts """

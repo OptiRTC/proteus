@@ -3,7 +3,7 @@ version: '1.0.0-{build}'
 image: Ubuntu
 
 environment:
-  BUILD_NAME: HUNDER_BUILD_NAME: APPNAME-$APPVEYOR_BUILD_VERSION
+  BUILD_NAME: APPNAME-$APPVEYOR_BUILD_VERSION
   APPVEYOR_TOKEN:
     secure: APPVEYOR_TOKEN
 
@@ -20,4 +20,4 @@ artifacts:
     type: zip
 
 on_success:
-  - scripts/test/appveyor_test_wait.py
+  - proteus/appveyor_test_wait.py

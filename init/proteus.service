@@ -4,11 +4,11 @@ After=multi-user.target
 Wants=network-online.target
 
 [Service]
-Type=idle
-User=proteus
-Group=proteus
-ExecStart=/usr/local/bin/proteus-test-daemon/appveyor_daemon.sh
+Type=simple
+Restart=on-failure
+RestartSec=5s
+User=
+ExecStart=/usr/local/proteus/proteus.sh
 
 [Install]
 WantedBy=multi-user.target
-

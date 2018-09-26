@@ -4,7 +4,7 @@
 Runs tests with default values
 """
 
-from test_manager import TestManager
+from proteus.test_manager import TestManager
 
 TESTS = TestManager()
 TESTS.add_test("unit_tests_1")
@@ -19,4 +19,4 @@ TESTS.add_destructive_test("stress_test")
 TESTS.add_scenario("unexpected_powercycle")
 TESTS.add_scenario("disconnect_wifi")
 
-TESTS.run_tests("results.xml")
+TESTS.run()

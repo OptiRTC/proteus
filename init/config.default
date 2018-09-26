@@ -1,0 +1,35 @@
+# config.default
+# copy to /usr/local/proteus/config and edit
+
+[CI]
+# Suports Appveyor
+ci_platform=APPVEYOR
+ci_api_token=<your token>
+ci_idle_build_poll_interval_seconds=600
+ci_new_build_poll_interval_seconds=180
+
+[Host]
+# Supports photon and electron
+platform=photon
+serial_port=/dev/ttyACM0
+bin_path=bin/%(platform)s/
+result_prefix=test_results
+proteus_path=/usr/local/proteus/
+particle_bin=/usr/bin/particle
+
+[Appveyor]
+# Only used when CI_PLATFORM is set to APPVEYOR
+account_name=
+project_slug=
+artifact_path=/usr/local/proteus/appveyor
+build_file=/usr/local/proteus/build_log.txt
+
+[Tests]
+# Supply the expected number of tests to pass in binfile=<#tests> format
+test=1
+integration_test=10
+dummy_test=5
+
+[Scenarios]
+user_app=user.bin
+scenario_path=scenarios

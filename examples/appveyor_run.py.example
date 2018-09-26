@@ -4,12 +4,12 @@
 Runs appveyor test daemon
 """
 
-from os import environ
-from appveyor_test import AppveyorTest
+from os import getenv
+from proteus.appveyor.appveyor_manager import AppveyorManager
 
-PLATFORM = environ["PARTICLE_PLATFORM"] or "electron" 
+PLATFORM = getenv("PARTICLE_PLATFORM", "electron")
 
-TESTER = AppveyorTest(PLATFORM)
+TESTER = AppveyorManager(PLATFORM)
 TESTER.add_test("unit_tests_1")
 TESTER.add_test("integration_test")
 TESTER.add_test("smoke_test")
