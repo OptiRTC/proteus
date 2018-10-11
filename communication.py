@@ -177,7 +177,7 @@ class StopSignalThread(Thread):
 
 
 class LoopbackThread(StopSignalThread):
-    """ 
+    """
     Loops back any input to the output. Use for testing channel
     and thread APIs.
     """

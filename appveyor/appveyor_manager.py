@@ -92,7 +92,7 @@ class AppveyorManager(TestManager):
                 self.run_tests("{}_{}.xml".format(
                     self.config.get('Host', 'result_prefix'),
                     time()))
-                self.publish_tests(job_id, "test_results.xml")
+                self.publish_tests(job_id, self.result_filename)
                 self.last_build = result["build"]["version"]
                 self.log_build()
                 print("Resuming idle state")

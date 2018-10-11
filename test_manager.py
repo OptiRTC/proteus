@@ -33,6 +33,7 @@ class TestManager():
                 self.expect_tests(binfile, int(self.config['Tests'][binfile]))
         self.destructive_tests = False
         self.scenarios = []
+        self.result_filename = ""
 
     def add_test(self, test_bin):
         """ Adds a test binary to be run """
@@ -62,6 +63,7 @@ class TestManager():
 
     def run_tests(self, result_filename):
         """ Executes tests and writes results to file """
+        self.result_filename = result_filename
         bin_path = self.config.get('Host', 'bin_path')
         scenario_path = self.config.get('Scenarios', 'scenario_path')
         scenario_bin = self.config.get('Scenarios', 'user_app')
@@ -78,7 +80,7 @@ class TestManager():
 
         xml = self.test_agent.get_xml()
 
-        with open(result_filename, "w") as file:
+        with open(self.result_filename, "w") as file:
             file.write(xml)
 
     def run(self):
