@@ -1,6 +1,7 @@
 """
 Provides a test framework for complex scenarios
 """
+import re
 import sys
 from threading import Thread
 from time import time, sleep
@@ -104,6 +105,20 @@ class TestScenario(Thread):
                     return True
             return False
         event = TestEvent(_message_wait, error_msg)
+        self.events.append(event)
+        return event
+
+    def wait_regex(self, regex, error_msg="RegEx Timeout"):
+        """ Waits for a regex to be matched on the serial port """
+        prog = re.compile(regex)
+
+        def _regex_wait():
+            if not self.channel.input.empty() and self.channel.alive():
+                msg = self.channel.input.get()
+                self.channel.input.task_done()
+                return prog.match(msg)
+            return False
+        event = TestEvent(_regex_wait, error_msg)
         self.events.append(event)
         return event
 
