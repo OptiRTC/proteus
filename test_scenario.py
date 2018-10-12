@@ -194,7 +194,8 @@ class TestScenario(Thread):
                     self.test_fail(event.error())
             if self.check_channel and not self.channel.alive():
                 self.channel.close()
-                self.test_fail("Unexpected communication failure")
+                if not self.channel.open():
+                    self.test_fail("Unexpected communication failure")
         self.test_pass()
 
     def flash_firmware(self, binfile, error_msg="Failed to flash"):
@@ -211,12 +212,11 @@ class TestScenario(Thread):
 
     def wait_device(self, error_msg="Device did not connect within timeout"):
         """ Waits for device to connect to host """
-        # Wait device should close over started
-
-        started = False  # pylint:disable=W0612
+        started = False
 
         def _wait_device():
-            if not started:  # pylint:disable=E0601
+            nonlocal started
+            if not started:
                 started = True
                 self.check_channel = False
                 self.channel.close()

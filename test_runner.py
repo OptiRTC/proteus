@@ -140,7 +140,7 @@ class TestRunner():
                 # Write a ascii t to start the tests
                 self.channel.output.put("t\r\n".encode())
                 test.start_test()
-            if line == "Starting in DFU mode":
+            if line == "Starting in DFU mode" or test.finished:
                 # This message happens on reboot/test end
                 break
         self.channel.close()
