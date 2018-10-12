@@ -48,6 +48,8 @@ class TestScenario(Thread):
     """
 
     TIMEOUT = 30
+    FLASH_SETTLE_TIME = 5
+    FLASH_SETTLE_TIMEOUT = 60
     RST_SETTLE_TIME = 3
     RST_PIN = 23
 
@@ -84,6 +86,12 @@ class TestScenario(Thread):
     def unblock(self):
         """ PRIVATE: Sets blocked to false, bound function """
         self.blocked = False
+
+    def block_until_device_idle(self):
+        """ Loops until the device boots back into good state """
+        start = time()
+        while not self.channel.open() and (time() - start) < self.FLASH_SETTLE_TIMEOUT:
+            sleep(self.FLASH_SETTLE_TIME)
 
     def wait_for(self, event):
         """ PRIVATE: Runs a loop with a timeout waiting for a positive event result """
@@ -178,10 +186,7 @@ class TestScenario(Thread):
         binfile = self.config.get('Scenarios', 'user_app')
         flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()
-        sleep(flasher.FLASH_WAIT_TIME)
-        start = time()
-        while not self.channel.open() and (time() - start) < self.channel.TIMEOUT:
-            sleep(flasher.FLASH_WAIT_TIME)
+        self.block_until_device_idle()
         while self.events:
             if not self.blocked:
                 event = self.events.pop(0)
@@ -199,9 +204,27 @@ class TestScenario(Thread):
         def _flash_new_fw():
             self.channel.close()
             flasher.flash()
-            start = time()
-            while not self.channel.open() and (time() - start) < self.channel.TIMEOUT:
-                sleep(flasher.FLASH_WAIT_TIME)
+            self.block_until_device_idle()
         event = TestEvent(_flash_new_fw, error_msg)
+        self.events.append(event)
+        return event
+
+    def wait_device(self, error_msg="Device did not connect within timeout"):
+        """ Waits for device to connect to host """
+        # Wait device should close over started
+
+        started = False  # pylint:disable=W0612
+
+        def _wait_device():
+            if not started:  # pylint:disable=E0601
+                started = True
+                self.check_channel = False
+                self.channel.close()
+            else:
+                if self.channel.open():
+                    self.check_channel = True
+                    return True
+            return False
+        event = TestEvent(_wait_device, error_msg)
         self.events.append(event)
         return event

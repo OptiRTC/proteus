@@ -215,6 +215,10 @@ class SerialThread(StopSignalThread):
             print("SerialException: {}".format(str(ser_ex)))
             self.stop()
             return
+        except IOError as io_ex:
+            print("IOError: {}".format(str(io_ex)))
+            self.stop()
+            return
 
 
 class NewlineThread(StopSignalThread):
