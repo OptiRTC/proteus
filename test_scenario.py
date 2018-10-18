@@ -216,6 +216,7 @@ class TestScenario(Thread):
         started = False  # pylint:disable=W0612
 
         def _wait_device():
+            nonlocal started
             if not started:  # pylint:disable=E0601
                 started = True
                 self.check_channel = False

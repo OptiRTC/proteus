@@ -143,6 +143,8 @@ class TestRunner():
             if line == "Starting in DFU mode":
                 # This message happens on reboot/test end
                 break
+            if test.finished:
+                break
         self.channel.close()
         self.test_suites.append(test.finish())
         self.suite_id += 1
