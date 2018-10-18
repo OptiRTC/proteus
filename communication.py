@@ -7,7 +7,7 @@ This decouples any processing latency from reading the port,
 reducing the probability of dropping serial messages.
 """
 from os import path
-from queue import Queue
+from queue import Queue, Empty
 from threading import Thread, Event
 from serial import SerialException, Serial
 
@@ -30,6 +30,7 @@ class Channel():
 
     def close(self):
         """ Closes the channel """
+        self.clear()
         if self.thread is None:
             return
         self.thread.stop()
@@ -42,6 +43,21 @@ class Channel():
             self.thread = LoopbackThread(self.input, self.output)
             self.thread.start()
         return True
+
+    def clear(self):
+        """ Clears input and output queues """
+        while not self.input.empty():
+            try:
+                self.input.get(False)
+            except Empty:
+                continue
+            self.input.task_done()
+        while not self.output.empty():
+            try:
+                self.output.get(False)
+            except Empty:
+                continue
+            self.output.task_done()
 
     @staticmethod
     def factory(config):
@@ -86,6 +102,7 @@ class SerialChannel(Channel):
 
     def close(self):
         """ Stops thread and closes device """
+        self.clear()
         if self.thread:
             self.thread.stop()
             self.thread.join()
@@ -139,6 +156,7 @@ class NewlineChannel(SerialChannel):
 
     def close(self):
         """ Cleans up threads and devices """
+        self.clear()
         if self.thread:
             self.thread.stop()
             self.thread.join()
