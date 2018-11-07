@@ -79,6 +79,7 @@ class TestManager():
                 bin_path + scenario_bin)
 
         xml = self.test_agent.get_xml()
+        self.test_agent.clear()
 
         with open(self.result_filename, "w") as file:
             file.write(xml)

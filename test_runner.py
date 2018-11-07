@@ -165,3 +165,7 @@ class TestRunner():
     def get_xml(self):
         """ Render XML """
         return TestSuite.to_xml_string(self.test_suites)
+
+    def clear(self):
+        """ Clear test array """
+        self.test_suites = []

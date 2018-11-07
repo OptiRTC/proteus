@@ -193,8 +193,9 @@ class TestScenario(Thread):
                 if not self.wait_for(event):
                     self.test_fail(event.error())
             if self.check_channel and not self.channel.alive():
-                self.channel.close()
-                self.test_fail("Unexpected communication failure")
+                if not self.channel.open():
+                    self.channel.close()
+                    self.test_fail("Unexpected communication failure")
         self.test_pass()
 
     def flash_firmware(self, binfile, error_msg="Failed to flash"):
