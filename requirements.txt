@@ -16,4 +16,4 @@ pyserial == 3.4
 
 # appveyor/appveyor_manager.py: 10
 # appveyor/appveyor_test_wait.py: 9
-requests == 2.18.4
+requests == 2.20.1
