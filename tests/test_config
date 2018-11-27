@@ -27,4 +27,4 @@ dummy_test=5
 
 [Scenarios]
 user_app=DUMMY
-scenario_path=tests/scenarios
+scenario_path=./tests/scenarios

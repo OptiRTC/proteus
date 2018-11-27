@@ -53,35 +53,40 @@ class TestScenario(Thread):
     RST_SETTLE_TIME = 3
     RST_PIN = 23
 
-    def __init__(self, name, config):
+    def __init__(self, name, config, channel):
         super().__init__()
         self.name = name
         self.config = config
-        self.channel = NewlineChannel.factory(config)
+        self.channel = channel
         self.blocked = False
         self.events = []
         self.rst_pin = DigitalOutputDevice(self.RST_PIN, active_high=False)
         self.check_channel = False
+        self.output_stream = None
         self.power_cycle()
+
+    def print(self, msg):
+        """ Outputs to a queue, array, stream, and print"""
+        print(msg)
+        if self.output_stream is not None:
+            self.output_stream.append(msg)
 
     def test_pass(self):
         """ PRIVATE: Prints a pass message in a format thunder_test understands """
-        print("Test {} passed.".format(self.name))
-        print("Test summary: {} passed,"
-              " {} failed, and {} skipped,"
-              " out of {} tests.".format(1, 0, 0, 1))
+        self.print("Test {} passed.".format(self.name))
+        self.print("Test summary: {} passed,"
+                   " {} failed, and {} skipped,"
+                   " out of {} tests.".format(1, 0, 0, 1))
         self.channel.close()
-        sys.exit(0)
 
     def test_fail(self, assertion):
         """ PRIVATE: Prints a failure message in a format thunder_test understands """
-        print("Assertion {}: {}".format(self.name, assertion))
-        print("Test {} failed.".format(self.name))
-        print("Test summary: {} passed,"
-              " {} failed, and {} skipped,"
-              " out of {} test(s).".format(0, 1, 0, 1))
+        self.print("Assertion {}: {}".format(self.name, assertion))
+        self.print("Test {} failed.".format(self.name))
+        self.print("Test summary: {} passed,"
+                   " {} failed, and {} skipped,"
+                   " out of {} test(s).".format(0, 1, 0, 1))
         self.channel.close()
-        sys.exit(1)
 
     def unblock(self):
         """ PRIVATE: Sets blocked to false, bound function """
@@ -145,7 +150,7 @@ class TestScenario(Thread):
         """ Waits for a number of seconds that must be less than TIMEOUT """
         def _second_wait():
             if seconds > self.TIMEOUT:
-                print("Test Design Error: Wait exceeds timeout")
+                self.print("Test Design Error: Wait exceeds timeout")
                 return False
             sleep(seconds)
             return True
@@ -182,7 +187,7 @@ class TestScenario(Thread):
 
     def run(self):
         """ Runs the test """
-        print("Starting {}".format(self.name))
+        self.print("Starting {}".format(self.name))
         binfile = self.config.get('Scenarios', 'user_app')
         flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()

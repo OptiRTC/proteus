@@ -5,7 +5,7 @@ Facilitates running tests and flashing the device
 """
 
 import re
-from subprocess import PIPE, Popen
+from runpy import run_path
 from time import sleep, time
 from junit_xml import TestCase, TestSuite
 
@@ -150,14 +150,18 @@ class TestRunner():
         self.suite_id += 1
         self.retries = 0
 
-    def run_test_scenario(self, scenario, binfile):
+    def run_test_scenario(self, scenario_file, binfile):
         """ Run a test scenario with retries """
         test = TestInstance(self.suite_id, binfile, 1)
         test.start_test()
-        with Popen([scenario + '.py'], stdout=PIPE) as process:
-            for line in iter(process.stdout.readline, b''):
-                if line:
-                    test.parse_line(time(), line.decode('utf-8'))
+        scenario_module = run_path(scenario_file + ".py")
+        scenario = scenario_module.get('test_scenario')(self.config, self.channel)
+        lines = []
+        scenario.output_stream = lines
+        scenario.run()
+        for line in lines:
+            if line:
+                test.parse_line(time(), line)
         self.test_suites.append(test.finish())
         self.suite_id += 1
         self.retries = 0
