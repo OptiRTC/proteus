@@ -84,13 +84,13 @@ class ParticleFlasher(BaseFlasher):
         self.wait_for_serial()
         self.debug("Flashing {}".format(self.binfile))
         return_code = None
-        while not return_code != 0:
+        while return_code != 0:
             if retries > self.MAX_RETRIES:
                 return False
             retries += 1
             self.set_flash_mode()
             sleep(self.FLASH_WAIT_TIME)
-            call = Popen(
+            process = Popen(
                 [
                     "/bin/sh",
                     "-c",
@@ -98,6 +98,6 @@ class ParticleFlasher(BaseFlasher):
                 stdin=PIPE,
                 stdout=PIPE,
                 stderr=PIPE)
-            call.communicate()  # Needed instead of wait to prevent PIPE deadlock
-            return_code = call.returncode
+            self.debug(process.communicate()[0].decode("utf-8"))
+            return_code = process.returncode
         return True

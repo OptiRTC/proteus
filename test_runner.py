@@ -136,7 +136,7 @@ class TestRunner():
         flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()
         self.comm_setup()
-        while not test.finished and not self.channel.input.empty():
+        while not test.finished or not self.channel.input.empty():
             if self.channel.input.empty():
                 if not self.channel.alive():
                     test.error("Unexpected Device Disconnect")
@@ -170,6 +170,7 @@ class TestRunner():
         scenario.output_stream = lines
         scenario.run()
         for line in lines:
+            print(line)
             test.parse_line(time(), line)
         self.test_suites.append(test.finish())
         scenario.cleanup()
