@@ -16,6 +16,7 @@ class Channel():
     """ A generic buffered channel using concurrent queues """
 
     TIMEOUT = 60
+    ENABLE_DEBUG = False
 
     def __init__(self):
         # Paradigm: GET from input (stdin)
@@ -23,6 +24,11 @@ class Channel():
         # Paradigm: PUT into output (stdout)
         self.output = Queue()
         self.thread = None
+
+    def debug(self, message):
+        """ Prints a debug message"""
+        if self.ENABLE_DEBUG:
+            print(message)
 
     def alive(self):
         """ Is the channel currently open """
@@ -83,7 +89,7 @@ class SerialChannel(Channel):
             return True
         port = self.config.get('Host', 'serial_port')
         if not path.exists(port):
-            print("Port {} does not exist".format(port))
+            self.debug("Port {} does not exist".format(port))
             return False
         try:
             self.device = Serial(
@@ -94,10 +100,10 @@ class SerialChannel(Channel):
             self.thread.start()
             return True
         except SerialException as ser_ex:
-            print("SerialException: {}".format(str(ser_ex)))
+            self.debug("SerialException: {}".format(str(ser_ex)))
             return False
         except IOError as io_ex:
-            print("IOError: {}".format(str(io_ex)))
+            self.debug("IOError: {}".format(str(io_ex)))
             return False
 
     def close(self):
@@ -140,10 +146,10 @@ class NewlineChannel(SerialChannel):
             self.newline_detector.start()
             return True
         except SerialException as ser_ex:
-            print("SerialException: {}".format(str(ser_ex)))
+            self.debug("SerialException: {}".format(str(ser_ex)))
             return False
         except IOError as io_ex:
-            print("IOError: {}".format(str(io_ex)))
+            self.debug("IOError: {}".format(str(io_ex)))
             return False
 
     def alive(self):
@@ -176,6 +182,9 @@ class NewlineChannel(SerialChannel):
 
 class StopSignalThread(Thread):
     """ A thread that uses the stop() method to halt """
+
+    ENABLE_DEBUG = False
+
     def __init__(self):
         super().__init__()
         self._req_stop = Event()
@@ -192,6 +201,11 @@ class StopSignalThread(Thread):
     def alive(self):
         """ Returns true if thread is actively running, false otherwise """
         return not self._req_stop.is_set()
+
+    def debug(self, message):
+        """ Print a message if in debug mode"""
+        if self.ENABLE_DEBUG:
+            print(message)
 
 
 class LoopbackThread(StopSignalThread):
@@ -230,11 +244,11 @@ class SerialThread(StopSignalThread):
                     max(1,
                         self.connection.inWaiting())))
         except SerialException as ser_ex:
-            print("SerialException: {}".format(str(ser_ex)))
+            self.debug("SerialException: {}".format(str(ser_ex)))
             self.stop()
             return
         except IOError as io_ex:
-            print("IOError: {}".format(str(io_ex)))
+            self.debug("IOError: {}".format(str(io_ex)))
             self.stop()
             return
 
@@ -260,5 +274,7 @@ class NewlineThread(StopSignalThread):
         self.buffer.extend(newbytes)
         chunks = self.buffer.split(self.line_end)
         for line in chunks[:-1]:
-            self.input_queue.put(line.decode("utf-8"))
+            line = line.decode("utf-8")
+            self.debug("<Device: \"{}\"".format(line))
+            self.input_queue.put(line)
         self.buffer[0:] = chunks[-1]

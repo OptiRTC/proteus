@@ -14,6 +14,7 @@ def test_scenario(config, channel):
         config,
         channel)
     start = None
+    wait_test.ENABLE_DEBUG = True
     wait_test.wait_seconds(20)
 
     def _time_check():

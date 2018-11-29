@@ -3,7 +3,7 @@
 """ Flashes firmware to devices """
 
 from os import path
-from subprocess import call
+from subprocess import Popen, PIPE
 
 from time import sleep, time
 import serial
@@ -13,6 +13,7 @@ class BaseFlasher():
     """ Base class / test mockup """
     FLASH_WAIT_TIME = 6  # Experimentally determined on Ubuntu VM
     MAX_RETRIES = 3
+    ENABLE_DEBUG = False
 
     def __init__(self, binfile, config):
         self.binfile = binfile
@@ -29,6 +30,11 @@ class BaseFlasher():
     def flash(self):  # pylint:disable=R0201
         """ Stubbed out flash command """
         return True
+
+    def debug(self, message):
+        """ Prints a debug message"""
+        if self.ENABLE_DEBUG:
+            print(message)
 
     @staticmethod
     def factory(binfile, config):
@@ -76,13 +82,22 @@ class ParticleFlasher(BaseFlasher):
             self.particle,
             self.binfile)
         self.wait_for_serial()
-        print("Flashing {}".format(self.binfile))
-        self.set_flash_mode()
-        sleep(self.FLASH_WAIT_TIME)
-        while call(["/bin/sh", "-c", flash_cmd]) != 0:
+        self.debug("Flashing {}".format(self.binfile))
+        return_code = None
+        while not return_code != 0:
             if retries > self.MAX_RETRIES:
                 return False
             retries += 1
             self.set_flash_mode()
             sleep(self.FLASH_WAIT_TIME)
+            call = Popen(
+                [
+                    "/bin/sh",
+                    "-c",
+                    flash_cmd],
+                stdin=PIPE,
+                stdout=PIPE,
+                stderr=PIPE)
+            call.communicate()  # Needed instead of wait to prevent PIPE deadlock
+            return_code = call.returncode
         return True

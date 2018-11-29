@@ -12,6 +12,7 @@ def test_scenario(config, channel):
         "FailTest",
         config,
         channel)
+    failure_test.ENABLE_DEBUG = True
     failure_test.wait_seconds(2).expect(
         False,
         "Expected Failure")

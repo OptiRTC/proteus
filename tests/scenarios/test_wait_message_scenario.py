@@ -13,6 +13,8 @@ def test_scenario(config, channel):
         config,
         channel)
 
+    msg_test.ENABLE_DEBUG = True
+
     def _inject_message():
         """ Test function to inject a message """
         msg_test.channel.input.put("Pass")

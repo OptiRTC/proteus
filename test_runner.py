@@ -11,6 +11,7 @@ from junit_xml import TestCase, TestSuite
 
 from proteus.flasher import BaseFlasher
 from proteus.communication import NewlineChannel
+from proteus.test_scenario import TestScenario
 
 
 class TestInstance():
@@ -100,6 +101,11 @@ class TestInstance():
             None,
             time())
 
+    def error(self, message):
+        """ Prints a message and finished test """
+        print(message)
+        self.finished = True
+
 
 class TestRunner():
     """
@@ -130,9 +136,13 @@ class TestRunner():
         flasher = BaseFlasher.factory(binfile, self.config)
         flasher.flash()
         self.comm_setup()
-        while self.channel.alive() or not self.channel.input.empty():
+        while not test.finished and not self.channel.input.empty():
             if self.channel.input.empty():
+                if not self.channel.alive():
+                    test.error("Unexpected Device Disconnect")
+                    break
                 continue
+
             line = self.channel.input.get()
             self.channel.input.task_done()
             test.parse_line(time(), line)
@@ -160,9 +170,9 @@ class TestRunner():
         scenario.output_stream = lines
         scenario.run()
         for line in lines:
-            if line:
-                test.parse_line(time(), line)
+            test.parse_line(time(), line)
         self.test_suites.append(test.finish())
+        scenario.cleanup()
         self.suite_id += 1
         self.retries = 0
 

@@ -11,6 +11,7 @@ def test_scenario(config, channel):
         "PassTest",
         config,
         channel)
+    pass_test.ENABLE_DEBUG = True
     pass_test.wait_seconds(2).expect(
         True,
         "Expected Failure")
