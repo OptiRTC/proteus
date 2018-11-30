@@ -9,6 +9,7 @@ from time import time, sleep
 
 from configparser import ConfigParser
 from proteus.test_runner import TestRunner
+from proteus.flasher import BaseFlasher
 
 
 class TestManager():
@@ -71,6 +72,9 @@ class TestManager():
             print("================ {} ================".format(test))
             count = self.expectations.get(test, 0)
             self.test_agent.run_test_suite(bin_path + test + ".bin", count)
+        binfile = self.config.get('Scenarios', 'user_app')
+        flasher = BaseFlasher.factory(binfile, self.config)
+        flasher.flash()
         for scenario in self.scenarios:
             print("================ {} ================".format(scenario))
             self.test_agent.run_test_scenario(

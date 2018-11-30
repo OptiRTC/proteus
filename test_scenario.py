@@ -58,7 +58,7 @@ class TestScenario(Thread):
     STATUS_ERROR = 2
     STATUS_FINISHED = 3
 
-    DEBUG_ENABLED = False
+    ENABLE_DEBUG = False
 
     def __init__(self, name, config, channel):
         super().__init__()
@@ -81,7 +81,7 @@ class TestScenario(Thread):
 
     def print(self, msg):
         """PRIVATE: Outputs to a queue, array, stream, and print"""
-        if self.DEBUG_ENABLED:
+        if self.ENABLE_DEBUG:
             print(msg)
         if self.output_stream is not None:
             self.output_stream.append(msg)
@@ -220,16 +220,16 @@ class TestScenario(Thread):
         self.events.append(event)
         return event
 
-    def run(self):
-        """ Runs the test """
-        error_count = 0
+    def start(self):
         self.total_events = len(self.events)
         self.print("Starting {}".format(self.name))
         self.status = TestScenario.STATUS_RUNNING
-        binfile = self.config.get('Scenarios', 'user_app')
-        flasher = BaseFlasher.factory(binfile, self.config)
-        flasher.flash()
         self.block_until_device_idle()
+
+    def run(self):
+        """ Runs the test """
+        self.start()
+        error_count = 0
         while self.events and self.status == TestScenario.STATUS_RUNNING:
             self.render_progress()
             if not self.blocked:
@@ -283,7 +283,7 @@ class TestScenario(Thread):
     def debug(self, msg="DEBUG"):
         """ Emits a debug message to the console """
         def _print_debug():
-            if self.DEBUG_ENABLED:
+            if self.ENABLE_DEBUG:
                 print(msg)
             return True
         event = TestEvent(_print_debug, "debug print failed")
@@ -292,6 +292,8 @@ class TestScenario(Thread):
 
     def render_progress(self):
         """ Draws task progress and overall progress """
+        if self.ENABLE_DEBUG:
+            return
         def render_bar(progress):
             sys.stdout.write('[')
             step = 3

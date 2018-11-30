@@ -141,7 +141,9 @@ class NewlineChannel(SerialChannel):
                 self.BAUD,
                 timeout=self.TIMEOUT)
             self.thread = SerialThread(self.device, self.raw_queue, self.output)
+            #self.thread.ENABLE_DEBUG = self.ENABLE_DEBUG
             self.newline_detector = NewlineThread(self.input, self.raw_queue)
+            self.newline_detector.ENABLE_DEBUG = self.ENABLE_DEBUG
             self.thread.start()
             self.newline_detector.start()
             return True
