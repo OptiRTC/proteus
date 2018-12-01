@@ -8,7 +8,6 @@ from time import time, sleep
 
 from gpiozero import DigitalOutputDevice
 from proteus.flasher import BaseFlasher
-from proteus.communication import Channel, NewlineChannel
 
 
 class TestEvent():
@@ -215,21 +214,19 @@ class TestScenario(Thread):
         def _power_on():
             self.check_channel = True
             self.rst_pin.off()
+            sleep(self.FLASH_SETTLE_TIME)
             return self.channel.open()
         event = TestEvent(_power_on)
         self.events.append(event)
         return event
 
-    def start(self):
+    def run(self):
+        """ Runs the test """
+        error_count = 0
         self.total_events = len(self.events)
         self.print("Starting {}".format(self.name))
         self.status = TestScenario.STATUS_RUNNING
         self.block_until_device_idle()
-
-    def run(self):
-        """ Runs the test """
-        self.start()
-        error_count = 0
         while self.events and self.status == TestScenario.STATUS_RUNNING:
             self.render_progress()
             if not self.blocked:
@@ -242,6 +239,9 @@ class TestScenario(Thread):
                 self.channel.close()
                 if not self.channel.open():
                     self.debug("Unexpected communication failure")
+                    sleep(self.FLASH_SETTLE_TIME)
+                else:
+                    error_count = 0
             if error_count > 3:
                 self.test_error("Too many errors, aborting")
                 return
