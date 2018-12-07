@@ -9,7 +9,6 @@ from time import time, sleep
 from gpiozero import DigitalOutputDevice
 from proteus.flasher import BaseFlasher
 
-
 class TestEvent():
     """
     An object to handle a action-expectation pair
@@ -117,26 +116,31 @@ class TestScenario(Thread):
 
     def cleanup(self):
         """ Closes threads, pins, and other resources"""
-        self.channel.close()
         self.rst_pin.close()
 
     def block_until_device_idle(self):
         """ Loops until the device boots back into good state """
-        self.debug("Waiting for devce...")
+        self.print("Waiting for devce...")
         start = time()
+        sleep(self.FLASH_SETTLE_TIME)
         while not self.channel.open() and (time() - start) < self.FLASH_SETTLE_TIMEOUT:
             sleep(self.FLASH_SETTLE_TIME)
-        self.debug("Device opened")
+        self.print("Device opened")
 
     def wait_for(self, event):
         """ PRIVATE: Runs a loop with a timeout waiting for a positive event result """
+        error_count = 0
         self.blocked = True
         start = time()
         self.current_progress = 0
         self.total_progress = self.TIMEOUT
         while self.current_progress < self.TIMEOUT:
+            if error_count > 3:
+                self.test_fail("Repeated Errors on SerialPort")
             self.current_progress = (time() - start)
             self.render_progress()
+            if not self.check_comms(error_count):
+                return False
             if event.run():
                 self.unblock()
                 return True
@@ -162,6 +166,7 @@ class TestScenario(Thread):
         def _regex_wait():
             if not self.channel.input.empty() and self.channel.alive():
                 msg = self.channel.input.get()
+                self.print(msg)
                 self.channel.input.task_done()
                 return prog.search(msg) is not None
             return False
@@ -184,7 +189,7 @@ class TestScenario(Thread):
         """ Waits for a number of seconds that must be less than TIMEOUT """
         def _second_wait():
             if seconds > self.TIMEOUT:
-                self.debug("Test Design Error: Wait exceeds timeout")
+                self.print("Test Design Error: Wait exceeds timeout")
                 return False
             sleep(seconds)
             return True
@@ -220,6 +225,21 @@ class TestScenario(Thread):
         self.events.append(event)
         return event
 
+    def check_comms(self, error_count):
+        """ Checks and regenerates comm channels"""
+        if self.check_channel and not self.channel.alive():
+            error_count += 1
+            self.channel.close()
+            if not self.channel.open():
+                self.print("Unexpected communication failure")
+                sleep(self.FLASH_SETTLE_TIME)
+            else:
+                error_count = 0
+        if error_count > 3:
+            self.test_error("Too many errors, aborting")
+            return False
+        return True
+
     def run(self):
         """ Runs the test """
         error_count = 0
@@ -234,16 +254,7 @@ class TestScenario(Thread):
                 if not self.wait_for(event):
                     self.test_fail(event.error())
                     return
-            if self.check_channel and not self.channel.alive():
-                error_count += 1
-                self.channel.close()
-                if not self.channel.open():
-                    self.debug("Unexpected communication failure")
-                    sleep(self.FLASH_SETTLE_TIME)
-                else:
-                    error_count = 0
-            if error_count > 3:
-                self.test_error("Too many errors, aborting")
+            if not self.check_comms(error_count):
                 return
         self.test_pass()
 
@@ -252,9 +263,8 @@ class TestScenario(Thread):
         flasher = BaseFlasher.factory(binfile, self.config)
 
         def _flash_new_fw():
-            self.channel.close()
-            flasher.flash()
-            self.block_until_device_idle()
+            self.check_channel = False
+            return flasher.flash()
         event = TestEvent(_flash_new_fw, error_msg)
         self.events.append(event)
         return event
@@ -270,7 +280,6 @@ class TestScenario(Thread):
             if not started:  # pylint:disable=E0601
                 started = True
                 self.check_channel = False
-                self.channel.close()
             else:
                 if self.channel.open():
                     self.check_channel = True

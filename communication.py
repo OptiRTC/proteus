@@ -7,7 +7,7 @@ This decouples any processing latency from reading the port,
 reducing the probability of dropping serial messages.
 """
 from os import path
-from queue import Queue, Empty
+from queue import Queue
 from threading import Thread, Event
 from serial import SerialException, Serial
 
@@ -16,6 +16,7 @@ class Channel():
     """ A generic buffered channel using concurrent queues """
 
     TIMEOUT = 60
+    THREAD_JOIN_TIMEOUT = 1.0
     ENABLE_DEBUG = False
 
     def __init__(self):
@@ -25,7 +26,7 @@ class Channel():
         self.output = Queue()
         self.thread = None
 
-    def debug(self, message):
+    def print(self, message):
         """ Prints a debug message"""
         if self.ENABLE_DEBUG:
             print(message)
@@ -36,12 +37,10 @@ class Channel():
 
     def close(self):
         """ Closes the channel """
-        self.clear()
-        if self.thread is None:
-            return
-        self.thread.stop()
-        self.thread.join()
-        self.thread = None
+        if self.thread is not None:
+            self.thread.stop()
+            self.thread.join(timeout=self.THREAD_JOIN_TIMEOUT)
+            self.thread = None
 
     def open(self):
         """ Opens the channel """
@@ -52,18 +51,10 @@ class Channel():
 
     def clear(self):
         """ Clears input and output queues """
-        while not self.input.empty():
-            try:
-                self.input.get(False)
-            except Empty:
-                continue
-            self.input.task_done()
-        while not self.output.empty():
-            try:
-                self.output.get(False)
-            except Empty:
-                continue
-            self.output.task_done()
+        with self.input.mutex:
+            self.input.queue.clear()
+        with self.output.mutex:
+            self.output.queue.clear()
 
     @staticmethod
     def factory(config):
@@ -89,7 +80,7 @@ class SerialChannel(Channel):
             return True
         port = self.config.get('Host', 'serial_port')
         if not path.exists(port):
-            self.debug("Port {} does not exist".format(port))
+            self.print("Port {} does not exist".format(port))
             return False
         try:
             self.device = Serial(
@@ -100,25 +91,24 @@ class SerialChannel(Channel):
             self.thread.start()
             return True
         except SerialException as ser_ex:
-            self.debug("SerialException: {}".format(str(ser_ex)))
+            self.print("SerialException: {}".format(str(ser_ex)))
+            self.device = None
             return False
         except IOError as io_ex:
-            self.debug("IOError: {}".format(str(io_ex)))
+            self.print("IOError: {}".format(str(io_ex)))
+            self.device = None
             return False
 
     def close(self):
         """ Stops thread and closes device """
-        self.clear()
-        if self.thread:
-            self.thread.stop()
-            self.thread.join()
+        super().close()
         if self.device:
             self.device.close()
-        self.device = None
+            self.device = None
 
     def alive(self):
         """ Checks if device and thread are still alive """
-        return self.device is not None and self.thread.alive()
+        return self.device is not None and super().alive()
 
 
 class NewlineChannel(SerialChannel):
@@ -148,32 +138,25 @@ class NewlineChannel(SerialChannel):
             self.newline_detector.start()
             return True
         except SerialException as ser_ex:
-            self.debug("SerialException: {}".format(str(ser_ex)))
+            self.print("SerialException: {}".format(str(ser_ex)))
             return False
         except IOError as io_ex:
-            self.debug("IOError: {}".format(str(io_ex)))
+            self.print("IOError: {}".format(str(io_ex)))
             return False
 
     def alive(self):
         """ Checks if everything is open and in good state """
-        if self.device is None:
-            return False
-        if self.thread is None or self.newline_detector is None:
-            return False
-        return self.thread.alive() and self.newline_detector.alive()
+        if self.newline_detector is not None:
+            return self.newline_detector.alive() and super().alive()
+        return False
 
     def close(self):
         """ Cleans up threads and devices """
-        self.clear()
-        if self.thread:
-            self.thread.stop()
-            self.thread.join()
-        if self.newline_detector:
+        super().close()
+        if self.newline_detector is not None:
             self.newline_detector.stop()
-            self.newline_detector.join()
-        if self.device:
-            self.device.close()
-        self.device = None
+            self.newline_detector.join(timeout=self.THREAD_JOIN_TIMEOUT)
+            self.newline_detector = None
 
     @staticmethod
     def factory(config):
@@ -204,7 +187,7 @@ class StopSignalThread(Thread):
         """ Returns true if thread is actively running, false otherwise """
         return not self._req_stop.is_set()
 
-    def debug(self, message):
+    def print(self, message):
         """ Print a message if in debug mode"""
         if self.ENABLE_DEBUG:
             print(message)
@@ -238,19 +221,27 @@ class SerialThread(StopSignalThread):
     def exec(self):
         """ Runs the thread """
         try:
+            if not self.connection.isOpen():
+                self.print("Port closed")
+                self.stop()
+                return
             if not self.output_queue.empty():
                 self.connection.write(self.output_queue.get())
                 self.output_queue.task_done()
+            #if self.connection.inWaiting() > 0:
             self.input_queue.put(
                 self.connection.read(
-                    max(1,
-                        self.connection.inWaiting())))
+                    max(1, self.connection.inWaiting())))
         except SerialException as ser_ex:
-            self.debug("SerialException: {}".format(str(ser_ex)))
+            self.print("SerialException: {}".format(str(ser_ex)))
             self.stop()
             return
         except IOError as io_ex:
-            self.debug("IOError: {}".format(str(io_ex)))
+            self.print("IOError: {}".format(str(io_ex)))
+            self.stop()
+            return
+        except TypeError as ty_ex:
+            self.print("TypeError: {}".format(str(ty_ex)))
             self.stop()
             return
 
@@ -277,6 +268,5 @@ class NewlineThread(StopSignalThread):
         chunks = self.buffer.split(self.line_end)
         for line in chunks[:-1]:
             line = line.decode("utf-8")
-            self.debug("<Device: \"{}\"".format(line))
             self.input_queue.put(line)
         self.buffer[0:] = chunks[-1]
