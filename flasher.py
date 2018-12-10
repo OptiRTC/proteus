@@ -75,6 +75,10 @@ class ParticleFlasher(BaseFlasher):
             ser.close()
         except serial.SerialException:
             return
+        except IOError:
+            return
+        except TypeError:
+            return
 
     def flash(self):
         retries = 0
