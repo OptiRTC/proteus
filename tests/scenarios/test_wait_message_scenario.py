@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 """
-Fails a test scenario
+Tests the wait_message function
 """
 
-from configparser import ConfigParser
 from proteus.test_scenario import TestScenario, TestEvent
 
-CONFIG = ConfigParser()
-CONFIG.read('tests/test_config')
 
-MSG_TEST = TestScenario(
-    "MsgTest", CONFIG)
+def test_scenario(config, channel):
+    """ Tests injecting a message """
+    msg_test = TestScenario(
+        "MsgTest",
+        config,
+        channel)
 
+    msg_test.ENABLE_DEBUG = True
 
-def _inject_message():
-    """ Test function to inject a message """
-    MSG_TEST.channel.input.put("Pass")
-    return True
+    def _inject_message():
+        """ Test function to inject a message """
+        msg_test.channel.input.put("Pass")
+        return True
 
-MSG_TEST.events.append(
-    TestEvent(
-        _inject_message,
-        "Failed to inject"))
-MSG_TEST.wait_message("Pass").expect(
-    True,
-    "Did not get message")
-MSG_TEST.run()
+    msg_test.events.append(
+        TestEvent(
+            _inject_message,
+            "Failed to inject"))
+    msg_test.wait_message("Pass").expect(
+        True,
+        "Did not get message")
+    return msg_test

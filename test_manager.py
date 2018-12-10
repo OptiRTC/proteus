@@ -10,7 +10,6 @@ from time import time, sleep
 from configparser import ConfigParser
 from proteus.test_runner import TestRunner
 
-
 class TestManager():
     """ Runs tests on device """
 

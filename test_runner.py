@@ -5,12 +5,13 @@ Facilitates running tests and flashing the device
 """
 
 import re
-from subprocess import PIPE, Popen
+from runpy import run_path
 from time import sleep, time
 from junit_xml import TestCase, TestSuite
 
 from proteus.flasher import BaseFlasher
 from proteus.communication import NewlineChannel
+from proteus.test_scenario import TestScenario
 
 
 class TestInstance():
@@ -100,6 +101,11 @@ class TestInstance():
             None,
             time())
 
+    def error(self, message):
+        """ Prints a message and finished test """
+        print(message)
+        self.finished = True
+
 
 class TestRunner():
     """
@@ -112,7 +118,7 @@ class TestRunner():
 
     def __init__(self, config):
         self.config = config
-        self.channel = NewlineChannel.factory(config)
+        self.channel = None
         self.test_suites = []
         self.suite_id = 0
         self.platform = config.get('Host', 'platform')
@@ -120,19 +126,30 @@ class TestRunner():
 
     def comm_setup(self):
         """ Wait for port to exist and be openable """
+        self.channel = NewlineChannel.factory(self.config)
         sleep(self.SERIAL_WAIT_SEC)
         while not self.channel.open():
             sleep(self.SERIAL_WAIT_SEC)
+
+    def comm_teardown(self):
+        """ Close the channel """
+        self.channel.clear()
+        self.channel.close()
 
     def run_test_suite(self, binfile, expected_tests):
         """ Run a test suite with retries """
         test = TestInstance(self.suite_id, binfile, expected_tests)
         flasher = BaseFlasher.factory(binfile, self.config)
+        flasher.set_flash_mode()
         flasher.flash()
         self.comm_setup()
-        while self.channel.alive() or not self.channel.input.empty():
+        while not test.finished or not self.channel.input.empty():
             if self.channel.input.empty():
+                if not self.channel.alive():
+                    test.error("Unexpected Device Disconnect")
+                    break
                 continue
+
             line = self.channel.input.get()
             self.channel.input.task_done()
             test.parse_line(time(), line)
@@ -143,20 +160,28 @@ class TestRunner():
             if line == "Starting in DFU mode" or test.finished:
                 # This message happens on reboot/test end
                 break
-        self.channel.close()
+            if test.finished:
+                break
+        self.comm_teardown()
         self.test_suites.append(test.finish())
         self.suite_id += 1
         self.retries = 0
 
-    def run_test_scenario(self, scenario, binfile):
+    def run_test_scenario(self, scenario_file, binfile):
         """ Run a test scenario with retries """
         test = TestInstance(self.suite_id, binfile, 1)
         test.start_test()
-        with Popen([scenario + '.py'], stdout=PIPE) as process:
-            for line in iter(process.stdout.readline, b''):
-                if line:
-                    test.parse_line(time(), line.decode('utf-8'))
+        self.channel = NewlineChannel.factory(self.config)
+        scenario_module = run_path(scenario_file + ".py")
+        scenario = scenario_module.get('test_scenario')(self.config, self.channel)
+        lines = []
+        scenario.output_stream = lines
+        scenario.run()
+        for line in lines:
+            test.parse_line(time(), line)
         self.test_suites.append(test.finish())
+        scenario.cleanup()
+        self.comm_teardown()
         self.suite_id += 1
         self.retries = 0
 
