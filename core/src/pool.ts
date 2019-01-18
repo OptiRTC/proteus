@@ -2,9 +2,9 @@ import {Task} from "./task";
 import {WorkerState, Worker} from "./worker";
 import {UniqueID} from "./uniqueid";
 import {Partitions, WorkerChannels, PoolChannels} from "./protocol";
-import {Message, MessageTransport} from "./messagetransport";
+import {Message, MessageTransport, TransportClient} from "./messagetransport";
 
-export class Pool
+export class Pool implements TransportClient
 {
     private queued_tasks:Task[];
     private active_tasks:Task[];

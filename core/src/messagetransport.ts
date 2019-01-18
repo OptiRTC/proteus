@@ -1,4 +1,5 @@
-import {Partitions} from "./protocol";
+import {Partitions} from "protocol";
+import { UniqueID } from "uniqueid";
 
 export class Message
 {
@@ -18,6 +19,11 @@ class DispatchSubscription
         public channel:string,
         public address:string)
     {}
+};
+
+export interface TransportClient
+{
+    onMessage(message:Message);
 };
 
 // Abstract PUB/SUB and API transport
@@ -42,7 +48,7 @@ export class MessageTransport
         return null;
     };
 
-    public subscribe(reciever:any, partition:Partitions, channel:string, address:string)
+    public subscribe(reciever:TransportClient, partition:Partitions, channel:string, address:string)
     {
         this.subscriptions.push((new DispatchSubscription(
             reciever,

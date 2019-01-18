@@ -1,13 +1,13 @@
-import {Partitions, JobChannels, TaskChannels} from "./protocol";
-import {Platforms}  from "./platforms";
-import {TestComponent} from "./testcomponents";
-import {Task} from "./task";
-import {Result} from "./result";
-import {Pool} from "./pool";
-import {UniqueID} from "./uniqueid";
-import {Message, MessageTransport} from "./messagetransport";
+import {Partitions, JobChannels, TaskChannels} from "protocol";
+import {Platforms}  from "platforms";
+import {TestComponent} from "testcomponents";
+import {Task} from "task";
+import {Result} from "result";
+import {Pool} from "pool";
+import {Message, MessageTransport, TransportClient} from "messagetransport";
+import { UniqueID } from "uniqueid";
 
-export class Job extends UniqueID
+export class Job extends UniqueID implements TransportClient
 {
     private tasks:Task[];
     private results:Result[];

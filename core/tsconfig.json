@@ -1,0 +1,35 @@
+{
+	"compilerOptions": {
+		"target": "es6",
+		"module": "es6",
+		"lib": [
+			"es6",
+			"scripthost",
+			"esnext.asynciterable",
+			"dom",
+			"dom.iterable"
+		],
+		"moduleResolution" : "node",
+		"outDir": "./bin",
+		//"strict": true,
+		"allowJs": true,
+		"sourceMap": true,
+		"rootDir": "./",
+		"noUnusedLocals": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"baseUrl": "./",
+		"paths" : {
+			"*" : [
+				"src/*",
+				"node_modules/*",
+				"@types/*"
+			]
+		},
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true
+	},
+	"include": [
+		"src"
+	]
+}

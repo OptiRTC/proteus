@@ -1,5 +1,5 @@
 import {Task} from "./task";
-import {MessageTransport, Message} from "./messagetransport";
+import {MessageTransport, Message, TransportClient} from "./messagetransport";
 import { UniqueID } from "./uniqueid";
 import { Partitions, WorkerChannels} from "./protocol";
 import { Platforms } from "./platforms";
@@ -12,7 +12,7 @@ export enum WorkerState
     ERROR
 };
 
-export class Worker extends UniqueID
+export class Worker extends UniqueID implements TransportClient
 {
     public state:WorkerState;
     public heartbeat:number;

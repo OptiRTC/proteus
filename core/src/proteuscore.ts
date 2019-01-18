@@ -1,12 +1,12 @@
 import {Job} from "./job";
 import {Pool} from "./pool";
-import {Message, MessageTransport} from "./messagetransport";
-import {Partitions, WorkerChannels} from "./protocol";
+import {Message, MessageTransport, TransportClient} from "./messagetransport";
+import {Partitions, WorkerChannels, JobChannels} from "./protocol";
 import {Platforms} from "./platforms";
 import {TmpStorage} from "./storage";
 import {TestComponent} from "./testcomponents";
 
-export class ProteusCore
+export class ProteusCore implements TransportClient
 {
     private jobs:Job[];
     private pools:Pool[];
@@ -43,26 +43,41 @@ export class ProteusCore
     };
 
     public handleJobMessage(message:Message)
-        {
-
-
+    {
         if (message.address == '0')
         {
-            let platforms = null;
+            let platforms = [];
             if (message.content["platforms"] != undefined)
             {
                 // Should be an array of strings
-                if ()
+                for (let platform of message.content["platforms"])
+                {
+                    if (platform in Platforms)
+                    {
+                        platforms.push(platform);
+                    }
+                }
+            } else {
+                platforms = this.default_platforms;
             }
+
+            let tests = [];
+            if (message.content["tests"] != undefined)
+            {
+                tests = message.content["tests"];
+            } else {
+                tests = this.default_tests;
+            }
+
             this.createJob(
                 message.content["source"],
                 platforms,
-                message.content["pool"],
+                message.content["pool"] ? message.content["pool"] : this.default_pool,
                 tests);
-        } else {
+        } else if (message.channel == JobChannels.RESULT) {
 
         }
-    }
+    };
 
     public process()
     {
@@ -119,5 +134,5 @@ export class ProteusCore
             tests);
         this.jobs.push(job);
         return job;
-    };
+    };W
 };

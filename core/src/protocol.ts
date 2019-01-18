@@ -4,7 +4,8 @@ export enum Partitions {
 	POOLS = "pools",
 	WORKERS = "workers",
 	TASKS = "tasks",
-	SYSTEM = "system"
+	SYSTEM = "system",
+	ADAPTER = "adapter"
 };
 
 export enum WorkerChannels {
@@ -19,7 +20,8 @@ export enum JobChannels {
 	RESULT = "result",
 	STATUS = "status",
 	START = "start",
-	ABORT = "abort"
+	ABORT = "abort",
+	NEW = "new"
 };
 
 export enum TaskChannels {
@@ -29,4 +31,9 @@ export enum TaskChannels {
 
 export enum PoolChannels {
 	STATUS = "status"
+};
+
+export enum AdapterChannels {
+	BUILD = "build",
+	RESULT = "result"
 };

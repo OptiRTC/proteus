@@ -1,10 +1,10 @@
-import {Message, MessageTransport} from "./messagetransport";
-import {connect} from 'mqtt';
+import {Message, MessageTransport} from "messagetransport";
+import {connect, Client} from 'mqtt';
 
 // MQTT topic Protocol: /partition/address/channel
 export class MQTTTransport extends MessageTransport
 {
-    private client;
+    private client:Client;
     private message_regex;
     constructor(server:string)
     {
