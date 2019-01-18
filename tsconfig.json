@@ -1,0 +1,40 @@
+{
+	"extends": "./proteusconfig.json",
+	"compilerOptions": {
+		"baseUrl": "./",
+		"paths" : {
+			"*" : [
+                "core/*",
+                "common/*",
+                "worker/*",
+				"core/node_modules/*",
+				"common/node_modules/*",
+				"worker/node_modules/*",
+				"@types/*"
+			],
+			"common/*" : [
+				"common/src/*"
+            ],
+            "core/*" : [
+                "core/src/*"
+            ],
+            "worker/*" : [
+                "worker/src/*"
+            ]
+		},
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true
+	},
+	
+	"references": [
+		{ "path": "common" },
+		{ "path": "core" },
+		{ "path": "worker" }
+	],
+	"exclude": [
+		"test",
+		"common",
+		"core",
+		"worker"
+	]
+}

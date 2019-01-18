@@ -1,0 +1,17 @@
+{
+    "Files": {
+        "Port": 3000
+    },
+    "Appveyor": {
+        "Account": "",
+        "Project": "",
+        "Token": "",
+        "PollIntervalSec": 300
+    },
+    "Core" : {
+        "MessageServer": "mqtt://proteus.localdomain",
+        "MessagePort": 1883,
+        "FileServer": "proteus.localdomain",
+        "FilePort": 3000
+    }
+}

@@ -1,0 +1,26 @@
+{
+	"extends": "../proteusconfig",
+	"compilerOptions": {
+		"composite": true,
+		"baseUrl": "./",
+		"paths" : {
+			"*" : [
+				"src/*",
+				"node_modules/*",
+				"@types/*"
+			],
+			"common/*" : [
+				"../common/src/*"
+			],
+			"core/*" : [
+				"src/*"
+			] 
+		}
+	},
+    "include": [
+		"./src/*"
+	],
+	"references": [
+		{ "path": "../common" }
+	]
+}

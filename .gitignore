@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+bin/
+common/bin/
+core/bin/
+worker/bin/
+dist/core/*.js
+dist/worker/*.js
+node_modules/
+*/node_modules/
+config/*.json

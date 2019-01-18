@@ -1,0 +1,73 @@
+{
+    "extends": "tslint:recommended",
+    "linterOptions": {
+        "include": [
+            "src"
+        ]
+    },
+    "rulesDirectory": [
+        "tslint",
+        "node_modules/tslint-eslint-rules/dist/rules"
+    ],
+    "rules": {
+        "arrow-parens": false,
+        "array-type": false,
+        "no-debugger": false,
+        "callable-types": false,
+        "comment-format": false,
+        "no-console": false,
+        "no-var-keyword": false,
+        "align": ["parameters", "statements"],
+        "object-literal-sort-keys": false,
+        "object-literal-key-quotes": false,
+        "object-literal-shorthand": false,
+        "only-arrow-functions": false,
+        "ordered-imports": false,
+        "prefer-for-of": false,
+        "quotemark": [true, "single", "avoid-escape"],
+        "trailing-comma": [
+            true, {
+                "multiline": "never",
+                "singleline": "never"
+            }
+        ],
+        "no-constant-condition": true,
+        "no-control-regex": true,
+        "no-duplicate-case": true,
+        "no-empty": true,
+        "no-empty-character-class": true,
+        "no-empty-interface": false,
+        "no-extra-boolean-cast": true,
+        "no-extra-semi": true,
+        "no-invalid-regexp": true,
+        "no-irregular-whitespace": true,
+        "no-namespace": [true, "allow-declarations"],
+        "no-sparse-arrays": true,
+        "no-unexpected-multiline": true,
+        "prefer-const": false,
+        "use-isnan": true,
+        "valid-jsdoc": [
+            true, {
+                "prefer": {
+                    "return": "returns"
+                },
+                "requireReturn": false,
+                "requireParamDescription": true,
+                "requireReturnDescription": true,
+                "matchDescription": "^[A-Z][A-Za-z0-9\\s]*[.]$"
+            }
+        ],
+        "valid-typeof": true,
+        "variable-name": [
+            true,
+            "check-format",
+            "allow-leading-underscore",
+            "allow-pascal-case"
+        ],
+        "max-line-length": [true, 120],
+        "max-classes-per-file": false,
+        "member-ordering": [true, {
+            "order": "fields-first"
+        }]
+    }
+}

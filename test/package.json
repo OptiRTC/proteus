@@ -1,0 +1,33 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "description": "Proteus Tests",
+  "main": "jest.config.js",
+  "dependencies": {
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.4.32",
+    "@types/config": "0.0.34",
+    "@types/jest": "^23.3.14",
+    "@types/node": "^10.14.3",
+    "adm-zip": "^0.4.13",
+    "config": "^3.0.1",
+    "jest": "^23.6.0",
+    "ts-jest": "^23.10.5",
+    "typescript": "^3.3.4000"
+  },
+  "scripts": {
+    "test": "npx jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OptiRTC/proteus.git"
+  },
+  "author": "Austen Higgins-Cassidy (ahigginscassidy@optirtc.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OptiRTC/proteus/issues"
+  },
+  "homepage": "https://github.com/OptiRTC/proteus#readme"
+}

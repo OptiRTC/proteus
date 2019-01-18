@@ -1,0 +1,28 @@
+{
+    "Files": {
+        "Port": 3000
+    },
+    "Appveyor": {
+        "Account": "",
+        "Project": "",
+        "Token": "",
+        "PollIntervalSec": 300
+    },
+    "Core" : {
+        "MessageServer": "mqtt://proteus.localdomain",
+        "MessagePort": 1883,
+        "FileServer": "localhost",
+        "FilePort": 3000
+    },
+    "Worker": {
+        "id": "TestWorker",
+        "timeout": 30,
+        "pool": "default",
+        "platform": "electron",
+        "heartbeat": 120
+    },
+    "Serial": {
+        "port": "/dev/ttyACM0",
+        "dfuPort": "/dev/ttyAMA0"
+    }
+}
