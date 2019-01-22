@@ -1,14 +1,15 @@
-import {Task} from "./task";
-import {WorkerState, Worker} from "./worker";
-import {UniqueID} from "./uniqueid";
-import {Partitions, WorkerChannels, PoolChannels} from "./protocol";
-import {Message, MessageTransport, TransportClient} from "./messagetransport";
+import {Task} from "task";
+import {WorkerState, Worker} from "worker";
+import {Partitions, WorkerChannels, PoolChannels} from "protocol";
+import {Message, MessageTransport, TransportClient} from "messagetransport";
 
 export class Pool implements TransportClient
 {
     private queued_tasks:Task[];
     private active_tasks:Task[];
     private workers:Worker[];
+    private query_timer:number;
+    private query_interval:number;
 
     constructor(
         public id:string,
@@ -20,21 +21,44 @@ export class Pool implements TransportClient
             Partitions.POOLS,
             null,
             this.id);
+        this.query_timer = new Date().getTime();
+        this.query_interval = 180;
     };
 
     public onMessage(message:Message)
     {
         switch (message.partition) {
             case Partitions.POOLS:
-
+                this.handlePoolMessage(message);
                 break;
-
+            case Partitions.WORKERS:
+                this.handleWorkerMessage(message);
                 break;
             default:
-
                 break;
         }
     };
+
+    public handlePoolMessage(message:Message)
+    {
+        switch(message.channel)
+        {
+            case PoolChannels.QUERY:
+                this.transport.sendMessage(new Message(
+                    Partitions.POOLS,
+                    PoolChannels.STATUS,
+                    this.id,
+                    this));
+                break;
+            default:
+                break;
+        }
+    };
+
+    public handleWorkerMessage(message:Message)
+    {
+
+    }
 
     public discoverWorker(message:Message)
     {
@@ -93,6 +117,15 @@ export class Pool implements TransportClient
 
     public process()
     {
+        if ((new Date().getTime() - this.query_timer) > this.query_interval)
+        {
+            this.query_timer = new Date().getTime();
+            this.transport.sendMessage(new Message(
+                Partitions.WORKERS,
+                WorkerChannels.QUERY,
+                null,
+                { "pool": this.id}));
+        }
         // Dequeue tasks to idle workers until we run out of one or the other
         for(let worker of this.workers)
         {

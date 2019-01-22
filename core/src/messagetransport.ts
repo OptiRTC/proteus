@@ -1,5 +1,4 @@
 import {Partitions} from "protocol";
-import { UniqueID } from "uniqueid";
 
 export class Message
 {

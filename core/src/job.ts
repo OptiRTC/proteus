@@ -1,8 +1,8 @@
-import {Partitions, JobChannels, TaskChannels} from "protocol";
+import {Partitions, JobChannels, TaskChannels, AdapterChannels} from "protocol";
 import {Platforms}  from "platforms";
 import {TestComponent} from "testcomponents";
 import {Task} from "task";
-import {Result} from "result";
+import {TestCases} from "result";
 import {Pool} from "pool";
 import {Message, MessageTransport, TransportClient} from "messagetransport";
 import { UniqueID } from "uniqueid";
@@ -10,11 +10,12 @@ import { UniqueID } from "uniqueid";
 export class Job extends UniqueID implements TransportClient
 {
     private tasks:Task[];
-    private results:Result[];
+    private results:TestCases[];
     private finished:boolean;
     constructor(
         public transport:MessageTransport,
-        public source:string, // Friendly name of generating source, Manual, Appveyor, Travis, etc
+        public build:string,
+        public adapter_id:string, // Friendly name of generating source, Manual, Appveyor, Travis, etc
         public platforms:Platforms[], // List of platforms the job will run on
         public pool:Pool, // Pool to run the job in
         public storage_id:string, // URL or other path to storage for this task (artifacts)
@@ -46,6 +47,7 @@ export class Job extends UniqueID implements TransportClient
             for(let test of this.tests)
             {
                 let task = new Task(
+                    this.build,
                     this.id,
                     null,
                     platform,
@@ -75,7 +77,7 @@ export class Job extends UniqueID implements TransportClient
 
         for(let task of this.tasks)
         {
-            this.results.push(new Result([],[], task));
+            this.results.push(new TestCases(null, [],[], task));
         }
     };
 
@@ -83,12 +85,12 @@ export class Job extends UniqueID implements TransportClient
     {
         if (message.channel == TaskChannels.RESULT)
         {
-            let result = <Result> message.content;
+            let result = <TestCases> message.content;
             this.addResult(result);
         }
     };
 
-    private addResult(result:Result)
+    private addResult(result:TestCases)
     {
         let index = this.tasks.indexOf(result.task);
         if (index != -1)
@@ -100,6 +102,7 @@ export class Job extends UniqueID implements TransportClient
         if (this.results.length == this.tasks.length)
         {
             this.finished = true;
+            this.logResults();
         }
     };
 
@@ -116,7 +119,7 @@ export class Job extends UniqueID implements TransportClient
                 break;
 
             default:
-            break;
+                break;
         };
     };
 
@@ -128,9 +131,9 @@ export class Job extends UniqueID implements TransportClient
     public logResults()
     {
         this.transport.sendMessage(new Message(
-            Partitions.JOBS,
-            this.id,
-            JobChannels.RESULT,
+            Partitions.ADAPTER,
+            this.adapter_id,
+            AdapterChannels.RESULT,
             this.results));
     };
 };

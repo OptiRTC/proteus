@@ -13,7 +13,8 @@ export enum WorkerChannels {
 	TASK = "task",
 	HEARTBEAT = "heartbeat",
 	CONFIG = "config",
-	DISCOVER = "discover"
+	DISCOVER = "discover",
+	QUERY = "query"
 };
 
 export enum JobChannels {
@@ -21,19 +22,28 @@ export enum JobChannels {
 	STATUS = "status",
 	START = "start",
 	ABORT = "abort",
-	NEW = "new"
+	NEW = "new",
+	QUERY = "query"
 };
 
 export enum TaskChannels {
 	RESULT = "result",
-	STATUS = "status"
+	STATUS = "status",
+	QUERY = "query"
 };
 
 export enum PoolChannels {
-	STATUS = "status"
+	STATUS = "status",
+	QUERY = "query"
 };
 
 export enum AdapterChannels {
-	BUILD = "build",
-	RESULT = "result"
+	STORAGEREADY = "storageready",
+	RESULT = "result",
+	STATUS = "status",
+	QUERY = "query"
+};
+
+export enum SystemChannels {
+	STORAGE = "storage"
 };

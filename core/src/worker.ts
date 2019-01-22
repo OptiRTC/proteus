@@ -1,8 +1,8 @@
-import {Task} from "./task";
-import {MessageTransport, Message, TransportClient} from "./messagetransport";
-import { UniqueID } from "./uniqueid";
-import { Partitions, WorkerChannels} from "./protocol";
-import { Platforms } from "./platforms";
+import {Task} from "task";
+import {MessageTransport, Message, TransportClient} from "messagetransport";
+import { UniqueID } from "uniqueid";
+import { Partitions, WorkerChannels} from "protocol";
+import { Platforms } from "platforms";
 
 export enum WorkerState
 {
@@ -52,6 +52,7 @@ export class Worker extends UniqueID implements TransportClient
     {
         this.state = WorkerState.BUSY;
         this.task = task;
+        this.task.started = new Date().getTime();
         this.task.worker_id = this.id;
         this.transport.sendMessage(new Message(Partitions.WORKERS, WorkerChannels.TASK, this.id, task));
     };

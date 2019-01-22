@@ -1,3 +1,5 @@
+import { Result } from "result";
+
 export class TestComponent {
     constructor(
         public name:string, // Friendly name
@@ -6,20 +8,7 @@ export class TestComponent {
         public expectations:string[]) // A list of expectations (may be null for scenarios)
     {};
 
-    getSkipped(results:string[]): string[] {
-        for(let expect in this.expectations)
-        {
-            for(let result in results)
-            {
-                if (expect == result)
-                {
-                    const index: number = results.indexOf(result, 0);
-                    if (index > -1) {
-                        results.splice(index, 1);
-                    }
-                }
-            }
-        }
-        return results;
+    getSkipped(results:Result[]): string[] {
+        return this.expectations.filter(expectation => results.findIndex(result => expectation == result.name) != -1);
     };
 };

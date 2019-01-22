@@ -1,10 +1,13 @@
-import {Platforms, PlatformsName} from "./platforms";
-import {TestComponent} from "./testcomponents";
-import {UniqueID} from "./uniqueid";
+import {Platforms} from "platforms";
+import {TestComponent} from "testcomponents";
+import {UniqueID} from "uniqueid";
 
 export class Task extends UniqueID
 {
+    public timestamp:number;
+    public started:number;
     constructor(
+        public build:string,
         public job_id:string,
         public worker_id:string,
         public platform:Platforms,
@@ -13,5 +16,6 @@ export class Task extends UniqueID
         public test:TestComponent)
     {
         super();
+        this.timestamp = new Date().getTime();
     };
 };

@@ -1,10 +1,11 @@
-import {Job} from "./job";
-import {Pool} from "./pool";
-import {Message, MessageTransport, TransportClient} from "./messagetransport";
-import {Partitions, WorkerChannels, JobChannels} from "./protocol";
-import {Platforms} from "./platforms";
-import {TmpStorage} from "./storage";
-import {TestComponent} from "./testcomponents";
+import {Job} from "job";
+import {Pool} from "pool";
+import {Message, MessageTransport, TransportClient} from "messagetransport";
+import {Partitions, WorkerChannels, AdapterChannels, SystemChannels} from "protocol";
+import {Platforms} from "platforms";
+import {TmpStorage} from "storage";
+import {TestComponent} from "testcomponents";
+import { Adapter } from "adapter";
 
 export class ProteusCore implements TransportClient
 {
@@ -14,12 +15,20 @@ export class ProteusCore implements TransportClient
     private default_platforms:Platforms[];
     private default_tests:TestComponent[];
     private stores:TmpStorage[];
+    private adapters:Adapter[];
 
     constructor(public transport:MessageTransport)
     {
         this.createPool("default");
         this.transport.subscribe(this, Partitions.JOBS, null, null);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.DISCOVER, null);
+        this.transport.subscribe(this, Partitions.SYSTEM, null, null);
+        this.jobs = [];
+        this.pools = [];
+        this.default_platforms = [];
+        this.default_tests = [];
+        this.stores = [];
+        this.adapters = [];
     }
 
     public onMessage(message:Message)
@@ -31,6 +40,27 @@ export class ProteusCore implements TransportClient
                 break;
             case Partitions.WORKERS:
                 this.handleWorkerDiscovery(message);
+                break;
+            case Partitions.SYSTEM:
+                this.handleSystemMessage(message);
+                break;
+            default:
+                break;
+        }
+    };
+
+    public handleSystemMessage(message:Message)
+    {
+        switch(message.channel)
+        {
+            case SystemChannels.STORAGE:
+                let store = new TmpStorage();
+                this.stores.push(store);
+                this.transport.sendMessage(new Message(
+                    Partitions.ADAPTER,
+                    AdapterChannels.STORAGEREADY,
+                    message.address,
+                    store));
                 break;
             default:
                 break;
@@ -70,20 +100,36 @@ export class ProteusCore implements TransportClient
             }
 
             this.createJob(
-                message.content["source"],
+                message.content["adapter_id"],
+                message.content["build"],
                 platforms,
                 message.content["pool"] ? message.content["pool"] : this.default_pool,
                 tests);
-        } else if (message.channel == JobChannels.RESULT) {
-
         }
     };
 
     public process()
     {
+        // Let adapters poll
+        for (let adapter of this.adapters)
+        {
+            adapter.process();
+        }
+
+        // Pump tasks
         for (let pool of this.pools)
         {
             pool.process();
+        }
+
+        // Prune finished jobs
+        for (let job of this.jobs)
+        {
+            if (job.isFinished())
+            {
+                let index = this.jobs.indexOf(job);
+                this.jobs.splice(index, 1);
+            }
         }
     };
 
@@ -123,16 +169,22 @@ export class ProteusCore implements TransportClient
         return selected_pool;
     };
 
-    private createJob(source:string, platforms:Platforms[], poolname:string, tests:TestComponent[])
+    private createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[])
     {
         let job = new Job(
             this.transport,
-            source,
+            build,
+            adapter_id,
             platforms,
             this.selectPool(poolname),
             this.newStorage(),
             tests);
         this.jobs.push(job);
         return job;
-    };W
+    };
+
+    public registerAdapter(adapter:Adapter)
+    {
+        this.adapters.push(adapter);
+    };
 };

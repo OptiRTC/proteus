@@ -4,6 +4,8 @@ export class UniqueID
 
     constructor()
     {
-        this.id = '' + Math.random().toString(36);
+        let rng = 0;
+        while(rng == 0) rng = Math.random();
+        this.id = '' + rng.toString(36);
     };
 };

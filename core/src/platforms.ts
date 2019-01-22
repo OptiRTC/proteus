@@ -1,4 +1,3 @@
-
 export enum Platforms {
     ELECTRON="electron",
     PHOTON="photon",
