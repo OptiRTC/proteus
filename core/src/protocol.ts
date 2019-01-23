@@ -28,6 +28,7 @@ export enum JobChannels {
 
 export enum TaskChannels {
 	RESULT = "result",
+	ABORT = "abort",
 	STATUS = "status",
 	QUERY = "query"
 };

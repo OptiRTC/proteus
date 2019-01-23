@@ -3,9 +3,9 @@ import { MQTTTransport } from "mqtttransport";
 
 export class MQTTDaemon
 {
-    private mqtt:MQTTTransport;
-    private core:ProteusCore;
-    private active:boolean;
+    protected mqtt:MQTTTransport;
+    protected core:ProteusCore;
+    protected active:boolean;
     constructor(mqtt_ip:string)
     {
         this.mqtt = new MQTTTransport(mqtt_ip);

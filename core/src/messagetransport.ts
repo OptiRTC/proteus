@@ -28,17 +28,24 @@ export interface TransportClient
 // Abstract PUB/SUB and API transport
 export class MessageTransport
 {
-    private subscriptions:DispatchSubscription[];
-    private queue:Message[];
+    protected subscriptions:DispatchSubscription[];
+    protected queue:Message[];
 
-    public sendMessage(message:Message) {};
+    public sendMessage(message:Message) {
+        // Loopback
+        this.recieveMessage(
+            message.partition,
+            message.channel,
+            message.address,
+            message.content);
+    };
 
     public recieveMessage(partition:Partitions, channel:string, address:string, content:any)
     {
         this.queue.push(new Message(partition, channel, address, content));
     };
 
-    private nextMessage(): Message
+    protected nextMessage(): Message
     {
         if (this.queue.length > 0)
         {
@@ -71,7 +78,7 @@ export class MessageTransport
         }
     };
 
-    private dispatchMessage(message:Message)
+    protected dispatchMessage(message:Message)
     {
         for(let sub of this.subscriptions)
         {
@@ -95,4 +102,14 @@ export class MessageTransport
             this.dispatchMessage(message);
         }
     };
+
+    public processAll()
+    {
+        let message = this.nextMessage();
+        while(message != null)
+        {
+            this.dispatchMessage(message);
+            message = this.nextMessage();
+        }
+    }
 };

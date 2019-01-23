@@ -1,0 +1,47 @@
+{
+  "name": "core",
+  "version": "1.0.0",
+  "description": "Proteus Core",
+  "main": "execute.js",
+  "directories": {
+    "example": "examples"
+  },
+  "dependencies": {
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@types/config": "0.0.34",
+    "@types/jest": "^23.3.13",
+    "@types/ncp": "^2.0.1",
+    "@types/node": "^10.12.18",
+    "@types/tmp": "0.0.33",
+    "@types/unzip": "^0.1.1",
+    "config": "^3.0.1",
+    "http": "0.0.0",
+    "jest": "^23.6.0",
+    "junit-xml": "^1.0.0",
+    "mqtt": "^2.18.8",
+    "ncp": "^2.0.0",
+    "tmp": "0.0.33",
+    "typescript": "^3.2.4",
+    "unzip": "^0.1.11"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/optirtc/proteus.git"
+  },
+  "keywords": [
+    "Test",
+    "Particle",
+    "Device"
+  ],
+  "author": "Austen Higgins-Cassidy (ahigginscassidy@optirtc.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/optirtc/proteus/issues"
+  },
+  "homepage": "https://github.com/optirtc/proteus#readme"
+}

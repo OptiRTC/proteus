@@ -1,15 +1,15 @@
 import {Task} from "task";
 import {WorkerState, Worker} from "worker";
-import {Partitions, WorkerChannels, PoolChannels} from "protocol";
+import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "protocol";
 import {Message, MessageTransport, TransportClient} from "messagetransport";
 
 export class Pool implements TransportClient
 {
-    private queued_tasks:Task[];
-    private active_tasks:Task[];
-    private workers:Worker[];
-    private query_timer:number;
-    private query_interval:number;
+    protected queued_tasks:Task[];
+    protected active_tasks:Task[];
+    protected query_timer:number;
+    protected query_interval:number;
+    public workers:Worker[];
 
     constructor(
         public id:string,
@@ -19,29 +19,31 @@ export class Pool implements TransportClient
         this.transport.subscribe(
             this,
             Partitions.POOLS,
-            null,
+            PoolChannels.QUERY,
             this.id);
+        this.transport.subscribe(
+            this,
+            Partitions.WORKERS,
+            WorkerChannels.STATUS,
+            null);
+        this.transport.subscribe(
+            this,
+            Partitions.TASKS,
+            TaskChannels.RESULT,
+            null);
+        this.transport.subscribe(
+            this,
+            Partitions.TASKS,
+            TaskChannels.ABORT,
+            null);
+        this.workers = [];
         this.query_timer = new Date().getTime();
         this.query_interval = 180;
     };
 
     public onMessage(message:Message)
     {
-        switch (message.partition) {
-            case Partitions.POOLS:
-                this.handlePoolMessage(message);
-                break;
-            case Partitions.WORKERS:
-                this.handleWorkerMessage(message);
-                break;
-            default:
-                break;
-        }
-    };
-
-    public handlePoolMessage(message:Message)
-    {
-        switch(message.channel)
+      switch(message.channel)
         {
             case PoolChannels.QUERY:
                 this.transport.sendMessage(new Message(
@@ -50,15 +52,54 @@ export class Pool implements TransportClient
                     this.id,
                     this));
                 break;
+            case TaskChannels.ABORT:
+                {
+                    let index = this.queued_tasks.findIndex((task) => task.id == message.address);
+                    if (index != -1)
+                    {
+                        this.queued_tasks[index].abort(this.transport);
+                        this.queued_tasks.splice(index, 1);
+                    }
+                }
+                {
+                    let index = this.active_tasks.findIndex((task)=> task.id == message.address);
+                    if (index != -1)
+                    {
+                        this.active_tasks[index].abort(this.transport);
+                        this.active_tasks.splice(index, 1);
+                    }
+                }
+                break;
+            case TaskChannels.RESULT:
+                {
+                    let index = this.active_tasks.findIndex((task)=> task.id == message.address);
+                    if (index != -1)
+                    {
+                        this.active_tasks.splice(index, 1);
+                    }
+                }
+                break;
+            case WorkerChannels.STATUS:
+                // Check that worker still belongs to us
+                // otherwise remove
+                let index = this.workers.findIndex((w) => w.id == message.content["id"]);
+                if (index != -1)
+                {
+                    if(message.content["pool"] != this.id)
+                    {
+                        this.removeWorker(this.workers[index]);
+                    }
+                } else {
+                    if (message.content["pool"] == this.id)
+                    {
+                        this.discoverWorker(message);
+                    }
+                }
+                break;
             default:
                 break;
         }
     };
-
-    public handleWorkerMessage(message:Message)
-    {
-
-    }
 
     public discoverWorker(message:Message)
     {
@@ -95,7 +136,6 @@ export class Pool implements TransportClient
         if (this.workers.indexOf(worker) == -1)
         {
             worker.pool = this.id;
-            this.transport.subscribe(this, Partitions.WORKERS, null, worker.id);
             this.workers.push(worker);
         }
     };
@@ -105,14 +145,39 @@ export class Pool implements TransportClient
         let index = this.workers.indexOf(worker);
         if (index != -1)
         {
-            this.transport.unsubscribe(this, Partitions.WORKERS, null, worker.id);
             this.workers.splice(index, 1);
         }
     };
 
     public addTasks(tasks:Task[])
     {
+        for(let task of tasks)
+        {
+            task.pool_id = this.id;
+        }
         this.queued_tasks = this.queued_tasks.concat(tasks);
+    };
+
+    public getPlatformTask(worker:Worker):Task
+    {
+        let index = this.queued_tasks.findIndex((t)=> t.platform == worker.platform);
+        if (index == -1)
+        {
+            return null;
+        }
+        let task = this.queued_tasks[index];
+        this.queued_tasks.splice(index, 1);
+        return task;
+    };
+
+    public queueSize():number
+    {
+        return this.queued_tasks.length;
+    };
+
+    public activeCount():number
+    {
+        return this.active_tasks.length;
     };
 
     public process()
@@ -129,14 +194,13 @@ export class Pool implements TransportClient
         // Dequeue tasks to idle workers until we run out of one or the other
         for(let worker of this.workers)
         {
-            if (this.queued_tasks.length < 1)
-            {
-                break;
-            }
-
             if (worker.state == WorkerState.IDLE)
             {
-                let task = this.queued_tasks.shift();
+                let task = this.getPlatformTask(worker);
+                if (task == null || task == undefined)
+                {
+                    continue;                    
+                }
                 worker.setTask(task);
                 this.active_tasks.push(task);
             }

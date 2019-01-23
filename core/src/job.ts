@@ -9,9 +9,9 @@ import { UniqueID } from "uniqueid";
 
 export class Job extends UniqueID implements TransportClient
 {
-    private tasks:Task[];
-    private results:TestCases[];
-    private finished:boolean;
+    protected tasks:Task[];
+    protected results:TestCases[];
+    protected finished:boolean;
     constructor(
         public transport:MessageTransport,
         public build:string,
@@ -61,11 +61,11 @@ export class Job extends UniqueID implements TransportClient
         this.pool.addTasks(this.tasks);
     };
 
-    private abort()
+    public abort()
     {
         this.finished = true;
         // For every task without a result
-        // mark skipped
+        // mark failed
         for(let result of this.results)
         {
             let index = this.tasks.indexOf(result.task);
@@ -77,11 +77,15 @@ export class Job extends UniqueID implements TransportClient
 
         for(let task of this.tasks)
         {
-            this.results.push(new TestCases(null, [],[], task));
+            this.transport.sendMessage(new Message(
+                Partitions.TASKS,
+                TaskChannels.ABORT,
+                task.id,
+                null));
         }
     };
 
-    private handleTaskMessage(message:Message)
+    protected handleTaskMessage(message:Message)
     {
         if (message.channel == TaskChannels.RESULT)
         {
@@ -90,7 +94,7 @@ export class Job extends UniqueID implements TransportClient
         }
     };
 
-    private addResult(result:TestCases)
+    protected addResult(result:TestCases)
     {
         let index = this.tasks.indexOf(result.task);
         if (index != -1)
@@ -106,7 +110,7 @@ export class Job extends UniqueID implements TransportClient
         }
     };
 
-    private handleJobMessage(message:Message)
+    protected handleJobMessage(message:Message)
     {
         switch(message.channel)
         {
@@ -118,6 +122,13 @@ export class Job extends UniqueID implements TransportClient
                 this.start();
                 break;
 
+            case JobChannels.QUERY:
+                this.transport.sendMessage(new Message(
+                    Partitions.JOBS,
+                    JobChannels.STATUS,
+                    this.id,
+                    this));
+                break;
             default:
                 break;
         };
@@ -132,8 +143,8 @@ export class Job extends UniqueID implements TransportClient
     {
         this.transport.sendMessage(new Message(
             Partitions.ADAPTER,
-            this.adapter_id,
             AdapterChannels.RESULT,
+            this.adapter_id,
             this.results));
     };
 };

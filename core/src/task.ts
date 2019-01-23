@@ -1,6 +1,9 @@
 import {Platforms} from "platforms";
 import {TestComponent} from "testcomponents";
 import {UniqueID} from "uniqueid";
+import { MessageTransport, Message } from "messagetransport";
+import { Partitions, TaskChannels } from "protocol";
+import { Result, TestStatus, TestCases } from "result";
 
 export class Task extends UniqueID
 {
@@ -17,5 +20,29 @@ export class Task extends UniqueID
     {
         super();
         this.timestamp = new Date().getTime();
+    };
+
+    public abort(transport:MessageTransport)
+    {
+        let results = [];
+        for (let expected of this.test.expectations)
+        {
+            results.push(new Result(
+                expected,
+                this.test.binary,
+                TestStatus.FAILED,
+                1,
+                new Date().getTime(),
+                [ "test aborted" ]));
+        }
+        transport.sendMessage(new Message(
+            Partitions.TASKS,
+            TaskChannels.RESULT,
+            this.id,
+            new TestCases(
+                'N/A',
+                [],
+                results,
+                this)));
     };
 };

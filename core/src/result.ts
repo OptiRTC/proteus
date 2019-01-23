@@ -6,7 +6,7 @@ export enum TestStatus
     PASSING = "passing",
     FAILED = "failed",
     SKIPPED = "skipped"
-}
+};
 
 export class Result
 {

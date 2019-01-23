@@ -40,7 +40,7 @@ test('MessageTransport', ()=>{
     expect(sub.message_count).toBe(4);
     // Channels are out of band
     transport.sendMessage(new Message(Partitions.SYSTEM, "other", '0', null));
-    expect(sub.message_count).toBe(4);    
+    expect(sub.message_count).toBe(4);
 });
 
 test('End-to-End Object Transport', ()=> {

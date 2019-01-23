@@ -1,7 +1,7 @@
 import {Job} from "job";
 import {Pool} from "pool";
 import {Message, MessageTransport, TransportClient} from "messagetransport";
-import {Partitions, WorkerChannels, AdapterChannels, SystemChannels} from "protocol";
+import {Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels} from "protocol";
 import {Platforms} from "platforms";
 import {TmpStorage} from "storage";
 import {TestComponent} from "testcomponents";
@@ -9,13 +9,13 @@ import { Adapter } from "adapter";
 
 export class ProteusCore implements TransportClient
 {
-    private jobs:Job[];
-    private pools:Pool[];
-    private default_pool:Pool;
-    private default_platforms:Platforms[];
-    private default_tests:TestComponent[];
-    private stores:TmpStorage[];
-    private adapters:Adapter[];
+    protected jobs:Job[];
+    protected pools:Pool[];
+    protected default_pool:Pool;
+    protected default_platforms:Platforms[];
+    protected default_tests:TestComponent[];
+    protected stores:TmpStorage[];
+    protected adapters:Adapter[];
 
     constructor(public transport:MessageTransport)
     {
@@ -29,7 +29,7 @@ export class ProteusCore implements TransportClient
         this.default_tests = [];
         this.stores = [];
         this.adapters = [];
-    }
+    };
 
     public onMessage(message:Message)
     {
@@ -74,7 +74,7 @@ export class ProteusCore implements TransportClient
 
     public handleJobMessage(message:Message)
     {
-        if (message.address == '0')
+        if (message.channel == JobChannels.NEW)
         {
             let platforms = [];
             if (message.content["platforms"] != undefined)
@@ -99,17 +99,46 @@ export class ProteusCore implements TransportClient
                 tests = this.default_tests;
             }
 
+            let pool = null;
+            if (message.content["pool"] != undefined)
+            {
+                pool = "default";
+            } else {
+                pool = message.content["pool"];
+            }
+
+            if (this.pools.findIndex((p) => p.id == pool) == -1)
+            {
+                this.createPool(pool);
+            }
+
             this.createJob(
                 message.content["adapter_id"],
                 message.content["build"],
                 platforms,
-                message.content["pool"] ? message.content["pool"] : this.default_pool,
-                tests);
+                pool,
+                tests).start();
         }
+    };
+
+    public poolCount():number
+    {
+        return this.pools.length;
+    };
+
+    public jobCount():number
+    {
+        return this.jobs.length;
+    };
+
+    public adapterCount():number
+    {
+        return this.adapters.length;
     };
 
     public process()
     {
+        this.transport.process();
         // Let adapters poll
         for (let adapter of this.adapters)
         {
@@ -133,7 +162,7 @@ export class ProteusCore implements TransportClient
         }
     };
 
-    private createPool(name:string, limit:number = 100):Pool
+    protected createPool(name:string, limit:number = 100):Pool
     {
         let pool = new Pool(
             name,
@@ -143,14 +172,14 @@ export class ProteusCore implements TransportClient
         return pool;
     };
 
-    private newStorage():string
+    protected newStorage():string
     {
         let store = new TmpStorage();
         this.stores.push(store);
         return store.path;
     };
 
-    private selectPool(name:string):Pool
+    protected selectPool(name:string):Pool
     {
         let selected_pool = null;
         for(let pool of this.pools)
@@ -169,7 +198,7 @@ export class ProteusCore implements TransportClient
         return selected_pool;
     };
 
-    private createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[])
+    protected createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[])
     {
         let job = new Job(
             this.transport,

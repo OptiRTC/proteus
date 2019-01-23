@@ -3,7 +3,7 @@ import {dir} from 'tmp';
 export class TmpStorage
 {
 	public path:string;
-	private cleanup:any;
+	protected cleanup:any;
 
 	constructor()
 	{

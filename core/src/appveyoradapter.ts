@@ -11,19 +11,19 @@ import { Readable } from "stream";
 
 export class AppveyorAdapter extends Adapter
 {
-    private account_name:string;
-    private project_slug:string;
-    private build:string;
-    private token:string;
-    private poll_interval:number;
-    private poll_timer:number;
-    private buildinfo:any;
-    private urlmap:Map<string,string>;
+    protected account_name:string;
+    protected project_slug:string;
+    protected build:string;
+    protected token:string;
+    protected poll_interval:number;
+    protected poll_timer:number;
+    protected buildinfo:any;
+    protected urlmap:Map<string,string>;
 
     constructor(
         transport:MessageTransport)
     {
-        super("Appveyor", transport);
+        super(transport, "Appveyor");
         this.build = "0.0.0-0";
         this.account_name = get('Appveyor.Account');
         this.project_slug = get ('Appveyor.Project');

@@ -1,5 +1,5 @@
 import { MessageTransport, TransportClient, Message } from "messagetransport";
-import { Partitions, AdapterChannels, JobChannels } from "protocol";
+import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "protocol";
 import { UniqueID } from "uniqueid";
 import {readFileSync} from "fs";
 import { TmpStorage } from "storage";
@@ -8,8 +8,9 @@ import { TestCases } from "result";
 export class Adapter extends UniqueID implements TransportClient
 {
     constructor(
-        public name:string,
-        public transport:MessageTransport)
+        public transport:MessageTransport,
+        public name:string
+        )
     {
         super();
         this.transport.subscribe(
@@ -24,8 +25,23 @@ export class Adapter extends UniqueID implements TransportClient
         return "unknown-" + (new Date().getTime());
     };
 
+    public startJob()
+    {
+        // First request storage, do any extraction
+        this.transport.sendMessage(new Message(
+            Partitions.SYSTEM,
+            SystemChannels.STORAGE,
+            this.id,
+            null));
+    };
+
     public loadJob(store:TmpStorage)
     {
+        // We expect when loadJob is called tests.json
+        // and all binaries are extracted into
+        // the temporary storage and made
+        // available to worker-clients
+
         // Find tests.json
         // Crack into TestComponents
         // Send job message
