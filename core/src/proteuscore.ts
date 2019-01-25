@@ -1,11 +1,11 @@
-import {Job} from "job";
-import {Pool} from "pool";
-import {Message, MessageTransport, TransportClient, ArrayFromJSON} from "messagetransport";
-import {Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels} from "protocol";
-import {Platforms} from "platforms";
-import {TmpStorage} from "storage";
-import {TestComponent} from "testcomponents";
-import { Adapter } from "adapter";
+import {Job} from "core:job";
+import {Pool} from "core:pool";
+import {Message, MessageTransport, TransportClient, ArrayFromJSON} from 'common:messagetransport';
+import {Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels} from 'common:protocol';
+import {Platforms} from "common:platforms";
+import {TmpStorage} from "core:storage";
+import {TestComponent} from "common:testcomponents";
+import { Adapter } from "core:adapter";
 
 export class ProteusCore implements TransportClient
 {

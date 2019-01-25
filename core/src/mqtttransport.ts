@@ -1,6 +1,6 @@
-import { MessageTransport} from "messagetransport";
+import { MessageTransport} from "common:messagetransport";
 import {connect, Client} from 'mqtt';
-import { Partitions } from "protocol";
+import { Partitions } from "common:protocol";
 
 // MQTT topic Protocol: /partition/address/channel
 export class MQTTTransport extends MessageTransport

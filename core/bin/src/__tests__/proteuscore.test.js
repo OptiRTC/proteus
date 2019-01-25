@@ -78,7 +78,6 @@ test('Adapter-to-worker-to-adapter', done => {
             switch (message.channel) {
                 case WorkerChannels.TASK:
                     let results = [];
-                    console.log(message.content);
                     let t = new Task().fromJSON(message.content);
                     for (let expectation of t.test.expectations) {
                         results.push(new Result({

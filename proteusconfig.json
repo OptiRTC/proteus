@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "es6",
+        "lib": [
+            "es2018",
+            "scripthost",
+            "esnext.asynciterable",
+            "dom",
+            "dom.iterable"
+        ],
+        "moduleResolution" : "node",
+        "outDir": "./bin",
+        "sourceMap": true,
+        "rootDir": "./",
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true
+    }
+}

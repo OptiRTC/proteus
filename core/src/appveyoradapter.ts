@@ -1,10 +1,10 @@
-import { Adapter } from "adapter";
-import {MessageTransport} from 'messagetransport';
-import { TestCaseResults } from "result";
+import { Adapter } from "core:adapter";
+import {MessageTransport} from "common:messagetransport";
+import { TestCaseResults } from "common:result";
 import { get } from 'config';
 import { request, IncomingMessage } from "http";
-import { TmpStorage } from "storage";
-import { Partitions, SystemChannels } from "protocol";
+import { TmpStorage } from "core:storage";
+import { Partitions, SystemChannels } from "common:protocol";
 import { Extract } from "unzip";
 import { getJunitXml } from 'junit-xml';
 import { Readable } from "stream";

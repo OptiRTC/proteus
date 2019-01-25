@@ -1,10 +1,10 @@
-import {Partitions, JobChannels, TaskChannels, AdapterChannels, PoolChannels} from "protocol";
-import {Platforms}  from "platforms";
-import {TestComponent} from "testcomponents";
-import {Task} from "task";
-import {TestCaseResults} from "result";
-import { Message, MessageTransport, TransportClient} from "messagetransport";
-import { UniqueID } from "uniqueid";
+import {Partitions, JobChannels, TaskChannels, AdapterChannels, PoolChannels} from "common:protocol";
+import {Platforms}  from "common:platforms";
+import {TestComponent} from "common:testcomponents";
+import {Task} from "common:task";
+import {TestCaseResults} from "common:result";
+import { Message, MessageTransport, TransportClient} from "common:messagetransport";
+import { UniqueID } from "common:uniqueid";
 
 export class Job extends UniqueID implements TransportClient
 {

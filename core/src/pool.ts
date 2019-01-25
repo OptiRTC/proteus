@@ -1,7 +1,7 @@
-import {Task} from "task";
-import {WorkerState, Worker} from "worker";
-import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "protocol";
-import {Message, MessageTransport, TransportClient} from "messagetransport";
+import {Task} from "common:task";
+import {WorkerState, Worker} from "common:worker";
+import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "common:protocol";
+import {Message, MessageTransport, TransportClient} from "common:messagetransport";
 
 export class Pool implements TransportClient
 {
