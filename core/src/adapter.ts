@@ -3,14 +3,13 @@ import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "protoc
 import { UniqueID } from "uniqueid";
 import {readFileSync} from "fs";
 import { TmpStorage } from "storage";
-import { TestCases } from "result";
+import { TestCaseResults } from "result";
 
 export class Adapter extends UniqueID implements TransportClient
 {
     constructor(
         public transport:MessageTransport,
-        public name:string
-        )
+        public name:string)
     {
         super();
         this.transport.subscribe(
@@ -28,11 +27,11 @@ export class Adapter extends UniqueID implements TransportClient
     public startJob()
     {
         // First request storage, do any extraction
-        this.transport.sendMessage(new Message(
+        this.transport.sendMessage(
             Partitions.SYSTEM,
             SystemChannels.STORAGE,
             this.id,
-            null));
+            null);
     };
 
     public loadJob(store:TmpStorage)
@@ -45,11 +44,11 @@ export class Adapter extends UniqueID implements TransportClient
         // Find tests.json
         // Crack into TestComponents
         // Send job message
-        let config = JSON.parse(readFileSync(store.path + "/tests.json", 'UFT-8'));
+        let config = JSON.parse(readFileSync(store.path + "/tests.json", 'UTF-8'));
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
         //config defines the tests
-        this.transport.sendMessage(new Message(Partitions.JOBS, JobChannels.NEW, this.id, config));
+        this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
     };
 
     public onMessage(message:Message)
@@ -62,14 +61,15 @@ export class Adapter extends UniqueID implements TransportClient
 
             case AdapterChannels.RESULT:
                 this.handleResults(message.content);
+                this.cleanupStorage(message.content[0].task.storage_id);
                 break;
 
             case AdapterChannels.QUERY:
-                this.transport.sendMessage(new Message(
+                this.transport.sendMessage(
                     Partitions.ADAPTER,
                     AdapterChannels.STATUS,
                     this.name,
-                    { "status": "active" }));
+                    { "status": "active" });
                 break;
 
             default:
@@ -77,7 +77,16 @@ export class Adapter extends UniqueID implements TransportClient
         }
     };
 
-    public handleResults(results:TestCases[])
+    public cleanupStorage(storage_id:string)
+    {
+        this.transport.sendMessage(
+            Partitions.SYSTEM,
+            SystemChannels.RELEASESTORAGE,
+            storage_id,
+            null);
+    };
+
+    public handleResults(results:TestCaseResults[])
     {
         console.log(JSON.stringify(results));
     };

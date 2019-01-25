@@ -1,18 +1,74 @@
-import { TestStatus, Result, TestCases } from 'result';
+import { TestStatus, Result, TestCaseResults } from 'result';
 import { Task } from 'task';
 import { Platforms } from 'platforms';
 import { TestComponent } from 'testcomponents';
+test('Serialization', () => {
+    let result = new Result({
+        name: "res",
+        classname: "res",
+        status: TestStatus.PASSING,
+        assertions: 1,
+        finished: new Date().getTime(),
+        messages: []
+    });
+    let serial = result.toJSON();
+    let result2 = new Result().fromJSON(serial);
+    expect(result).toEqual(result2);
+    let tc = new TestCaseResults({
+        "worker_id": "0",
+        passing: [],
+        failed: [],
+        skipped: [],
+        task: new Task()
+    });
+    serial = tc.toJSON();
+    let tc2 = new TestCaseResults().fromJSON(serial);
+    expect(tc2).toEqual(tc);
+});
 test('Skipped tests populated', () => {
-    let task = new Task("test", "0", "0", Platforms.ELECTRON, "default", "0", new TestComponent("test", "test.bin", "test.js", [
-        "PassedTest",
-        "FailedTest",
-        "SkippedTest"
-    ]));
-    let test_cases = new TestCases("0", [
-        new Result("PassedTest", "PassedTest", TestStatus.PASSING, 1, new Date().getTime(), null)
-    ], [
-        new Result("FailedTest", "FailedTest", TestStatus.FAILED, 1, new Date().getTime(), ["failed!"])
-    ], task);
+    let task = new Task({
+        build: "test",
+        job_id: "0",
+        worker_id: "0",
+        platform: Platforms.ELECTRON,
+        pool_id: "default",
+        storage_id: "0",
+        test: new TestComponent({
+            name: "test",
+            classname: "test.bin",
+            scenario: "test.js",
+            expectations: [
+                "PassedTest",
+                "FailedTest",
+                "SkippedTest"
+            ]
+        })
+    });
+    let test_cases = new TestCaseResults({
+        worker_id: "0",
+        passing: [
+            new Result({
+                name: "PassedTest",
+                classname: "PassedTest",
+                status: TestStatus.PASSING,
+                assertions: 1,
+                timestamp: new Date().getTime(),
+                task: task
+            })
+        ],
+        failed: [
+            new Result({
+                name: "FailedTest",
+                classname: "FailedTest",
+                status: TestStatus.FAILED,
+                assertions: 1,
+                timestamp: new Date().getTime(),
+                task: task
+            })
+        ],
+        task: task
+    });
+    test_cases.populateSkipped();
     expect(test_cases.passing.length).toBe(1);
     expect(test_cases.failed.length).toBe(1);
     expect(test_cases.skipped.length).toBe(1);

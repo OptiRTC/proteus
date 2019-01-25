@@ -3,15 +3,17 @@ import { ProteusCore } from "proteuscore";
 import { Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels, TaskChannels } from "protocol";
 import { TestComponent } from "testcomponents";
 import { Adapter } from "adapter";
-import { TestCases, Result, TestStatus } from "result";
+import { TestCaseResults, Result, TestStatus } from "result";
 import { WorkerState } from "worker";
 import { writeFileSync } from "fs";
 import { TmpStorage } from "storage";
+import { Platforms } from "platforms";
+import { Task } from "task";
 
 test('Worker Discovery', () => {
     let transport = new MessageTransport();
     let core = new ProteusCore(transport);
-    expect(core.poolCount()).toBe(0);
+    expect(core.poolCount()).toBe(1);
 
     core.handleWorkerDiscovery(new Message(
         Partitions.WORKERS,
@@ -22,7 +24,7 @@ test('Worker Discovery', () => {
             'pool': 'default',
             'name': 'worker1'
         }));
-    
+    transport.processAll();
     expect(core.poolCount()).toBe(1);
 });
 
@@ -54,7 +56,7 @@ test('Job Creation', () => {
     let transport = new MessageTransport();
     let core = new ProteusCore(transport);
     expect(core.jobCount()).toBe(0);
-    expect(core.poolCount()).toBe(0);
+    expect(core.poolCount()).toBe(1);
 
     core.handleJobMessage(new Message(
         Partitions.JOBS,
@@ -62,10 +64,14 @@ test('Job Creation', () => {
         "0",
         {
             'platforms': ["ELECTRON"],
-            'pool': "default",
+            'pool_id': "default",
             'adapter_id': "test",
             'build': '0.0.0-test',
-            'tests': [ new TestComponent('test1', 'test1.bin', null, ['test1'])]
+            'tests': [ new TestComponent({
+                name: 'test1',
+                binary: 'test1.bin',
+                scenario: null,
+                expectations: ['test1']})]
         }));
     
     expect(core.poolCount()).toBe(1);
@@ -80,7 +86,7 @@ test('Adapter Registration', () => {
     expect(core.adapterCount()).toBe(1);
 });
 
-test('Adapter-to-worker-to-adapter', () => {
+test('Adapter-to-worker-to-adapter', done => {
     // Create an Adapter
     // Create a pool and dummy worker
     // Push a job through adapter
@@ -90,33 +96,51 @@ test('Adapter-to-worker-to-adapter', () => {
         constructor(public transport:MessageTransport){}
         public onMessage(message:Message)
         {
-            let results = [];
-            for(let expectation of message.content.test.expectation)
+            switch(message.channel)
             {
-                results.push(new Result(
-                    expectation,
-                    expectation,
-                    TestStatus.PASSING,
-                    1,
-                    new Date().getTime(),
-                    []));
+
+            case WorkerChannels.TASK:
+                let results = [];
+                let t = new Task().fromJSON(message.content);
+                for(let expectation of t.test.expectations)
+                {
+                    results.push(new Result({
+                        name: expectation,
+                        classname: expectation,
+                        status: TestStatus.PASSING,
+                        assertions: 1,
+                        finished: new Date().getTime(),
+                        messages: []}));
+                }
+                this.transport.sendMessage(
+                    Partitions.TASKS,
+                    TaskChannels.RESULT,
+                    t.id,
+                    new TestCaseResults({
+                        worker_id: message.address,
+                        passing: results,
+                        failed: [],
+                        task: t}));
+                this.transport.sendMessage(
+                            Partitions.WORKERS,
+                            WorkerChannels.STATUS,
+                            t.worker_id,
+                            { 
+                                'state': WorkerState.IDLE
+                            });
+                break;
+            case WorkerChannels.QUERY:
+                this.transport.sendMessage(
+                    Partitions.WORKERS,
+                    WorkerChannels.STATUS,
+                    t.worker_id,
+                    { 
+                        'state': WorkerState.IDLE
+                    });
+                break;
+            default:
+                break;
             }
-            this.transport.sendMessage(new Message(
-                Partitions.TASKS,
-                TaskChannels.RESULT,
-                message.content.task.id,
-                new TestCases(
-                    message.address,
-                    results,
-                    [],
-                    message.content.task)));
-            this.transport.sendMessage(new Message(
-                        Partitions.WORKERS,
-                        WorkerChannels.STATUS,
-                        message.content.worker_id,
-                        { 
-                            'state': WorkerState.IDLE
-                        }));
         }
     };
     class TestAdapter extends Adapter
@@ -135,7 +159,7 @@ test('Adapter-to-worker-to-adapter', () => {
                 JSON.stringify(
                 {
                     "name": "ProductTests",
-                    "platforms": [ "electron", "photon"],
+                    "platforms": [ Platforms.ELECTRON, Platforms.PHOTON],
                     "pool": "product_dev",
                     "tests": [
                         {
@@ -153,10 +177,13 @@ test('Adapter-to-worker-to-adapter', () => {
             super.loadJob(store);
         };
 
-        public handleResults(results:TestCases[])
+        public handleResults(results:TestCaseResults[])
         {
-            expect(results.length).toBe(8);
+            expect(results.length).toBe(2);
+            expect(results[0].passing.length).toBe(4);
+            expect(results[1].passing.length).toBe(4);
             this.done = true;
+            done();
         };
     };
     let transport = new MessageTransport();
@@ -165,29 +192,28 @@ test('Adapter-to-worker-to-adapter', () => {
     let adapter = new TestAdapter(transport, 'test');
     let core = new ProteusCore(transport);
     core.registerAdapter(adapter);
-    transport.sendMessage(new Message(
+    transport.sendMessage(
         Partitions.WORKERS,
         WorkerChannels.DISCOVER,
         'testworker',
         { 
-            'plaform': 'electron',
-            'pool': 'default',
-            'name': 'testworker'
-        }));
-    transport.sendMessage(new Message(
+            'platform': Platforms.ELECTRON,
+            'pool_id': 'default',
+            'id': 'testworker'
+        });
+    transport.sendMessage(
         Partitions.WORKERS,
         WorkerChannels.DISCOVER,
         'testworker2',
         {
-            'platform': 'photon',
-            'pool': 'default',
-            'name': 'testworker2'
-        }));
+            'platform': Platforms.PHOTON,
+            'pool_id': 'default',
+            'id': 'testworker2'
+        });
     transport.processAll();
     adapter.startJob();
-    while(!adapter.done)
-    {
+    setInterval(() => {
         transport.process();
         core.process();
-    }
+    }, 100);
 });

@@ -1,5 +1,5 @@
 import { Adapter } from 'adapter';
-import { Message, MessageTransport } from 'messagetransport';
+import { MessageTransport } from 'messagetransport';
 import { TmpStorage } from 'storage';
 import { Partitions, JobChannels, AdapterChannels } from 'protocol';
 import { writeFileSync } from 'fs';
@@ -8,7 +8,7 @@ test('Adapter getBuild', () => {
     let adapter = new Adapter(transport, 'testadapter');
     expect(adapter.getBuild()).toContain("unknown-");
 });
-test('Adapter STORAGEREADY fires loadJob', () => {
+test('Adapter STORAGEREADY fires loadJob', done => {
     class JobListener {
         constructor() {
             this.called = false;
@@ -16,9 +16,10 @@ test('Adapter STORAGEREADY fires loadJob', () => {
         onMessage(message) {
             expect(message.channel).toBe(JobChannels.NEW);
             expect(message.address).toBe(adapter.id);
-            expect(message.content["adapter_id"]).toEqual(adapter.id);
-            expect(message.content["test"]).toEqual("test");
+            expect(message.content.adapter_id).toEqual(adapter.id);
+            expect(message.content.test).toEqual("test");
             this.called = true;
+            done();
         }
         ;
     }
@@ -30,7 +31,9 @@ test('Adapter STORAGEREADY fires loadJob', () => {
     let config = { "test": "test" };
     let store = new TmpStorage();
     writeFileSync(store.path + "/tests.json", JSON.stringify(config));
-    transport.sendMessage(new Message(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, adapter.id, store));
-    while (!test_listener.called) { }
+    transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, adapter.id, store);
+    while (!test_listener.called) {
+        transport.processAll();
+    }
 });
 //# sourceMappingURL=adapter.test.js.map

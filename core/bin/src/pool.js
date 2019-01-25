@@ -1,15 +1,16 @@
 import { WorkerState, Worker } from "worker";
 import { Partitions, WorkerChannels, PoolChannels, TaskChannels } from "protocol";
-import { Message } from "messagetransport";
 export class Pool {
     constructor(id, transport, limit) {
         this.id = id;
         this.transport = transport;
         this.limit = limit;
-        this.transport.subscribe(this, Partitions.POOLS, PoolChannels.QUERY, this.id);
+        this.transport.subscribe(this, Partitions.POOLS, null, this.id);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.STATUS, null);
         this.transport.subscribe(this, Partitions.TASKS, TaskChannels.RESULT, null);
         this.transport.subscribe(this, Partitions.TASKS, TaskChannels.ABORT, null);
+        this.queued_tasks = [];
+        this.active_tasks = [];
         this.workers = [];
         this.query_timer = new Date().getTime();
         this.query_interval = 180;
@@ -18,20 +19,21 @@ export class Pool {
     onMessage(message) {
         switch (message.channel) {
             case PoolChannels.QUERY:
-                this.transport.sendMessage(new Message(Partitions.POOLS, PoolChannels.STATUS, this.id, this));
+                this.transport.sendMessage(Partitions.POOLS, PoolChannels.STATUS, this.id, this);
+                break;
+            case PoolChannels.TASK:
+                this.addTasks(message.content);
                 break;
             case TaskChannels.ABORT:
                 {
                     let index = this.queued_tasks.findIndex((task) => task.id == message.address);
                     if (index != -1) {
-                        this.queued_tasks[index].abort(this.transport);
                         this.queued_tasks.splice(index, 1);
                     }
                 }
                 {
                     let index = this.active_tasks.findIndex((task) => task.id == message.address);
                     if (index != -1) {
-                        this.active_tasks[index].abort(this.transport);
                         this.active_tasks.splice(index, 1);
                     }
                 }
@@ -47,15 +49,17 @@ export class Pool {
             case WorkerChannels.STATUS:
                 // Check that worker still belongs to us
                 // otherwise remove
-                let index = this.workers.findIndex((w) => w.id == message.content["id"]);
-                if (index != -1) {
-                    if (message.content["pool"] != this.id) {
-                        this.removeWorker(this.workers[index]);
+                let index = this.workers.findIndex((w) => w.id == message.address);
+                if (typeof (message.content.pool_id) != 'undefined') {
+                    if (index != -1) {
+                        if (message.content.pool_id != this.id) {
+                            this.removeWorker(this.workers[index]);
+                        }
                     }
-                }
-                else {
-                    if (message.content["pool"] == this.id) {
-                        this.discoverWorker(message);
+                    else {
+                        if (message.content.pool_id == this.id) {
+                            this.discoverWorker(message);
+                        }
                     }
                 }
                 break;
@@ -73,23 +77,24 @@ export class Pool {
             }
         }
         if (selected_worker == null) {
-            selected_worker = this.addWorker(new Worker(message.content['name'], this.id, message.content['platform'], this.transport, 180));
+            selected_worker = this.addWorker(new Worker(message.address, this.id, message.content.platform, this.transport, 180));
         }
-        this.transport.sendMessage(new Message(Partitions.WORKERS, WorkerChannels.CONFIG, this.id, {
-            "pool": this.id
-        }));
+        this.transport.sendMessage(Partitions.WORKERS, WorkerChannels.CONFIG, this.id, {
+            "pool_id": this.id
+        });
     }
     ;
     addWorker(worker) {
-        if (this.workers.indexOf(worker) == -1) {
-            worker.pool = this.id;
+        if (this.workers.findIndex((w) => (w.id == worker.id)) == -1) {
+            worker.pool_id = this.id;
             this.workers.push(worker);
         }
     }
     ;
     removeWorker(worker) {
-        let index = this.workers.indexOf(worker);
+        let index = this.workers.findIndex((w) => worker.id == w.id);
         if (index != -1) {
+            worker.destroy();
             this.workers.splice(index, 1);
         }
     }
@@ -122,7 +127,7 @@ export class Pool {
     process() {
         if ((new Date().getTime() - this.query_timer) > this.query_interval) {
             this.query_timer = new Date().getTime();
-            this.transport.sendMessage(new Message(Partitions.WORKERS, WorkerChannels.QUERY, null, { "pool": this.id }));
+            this.transport.sendMessage(Partitions.WORKERS, WorkerChannels.QUERY, null, { "pool_id": this.id });
         }
         // Dequeue tasks to idle workers until we run out of one or the other
         for (let worker of this.workers) {

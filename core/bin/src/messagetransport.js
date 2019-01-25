@@ -1,3 +1,14 @@
+;
+export function ArrayToJSON(input) {
+    return input.map((item) => item.toJSON());
+}
+;
+export function ArrayFromJSON(ctor, input) {
+    return input.map((item) => {
+        return new ctor().fromJSON(item);
+    });
+}
+;
 export class Message {
     constructor(partition, channel, address, content) {
         this.partition = partition;
@@ -20,9 +31,13 @@ class DispatchSubscription {
 ;
 // Abstract PUB/SUB and API transport
 export class MessageTransport {
-    sendMessage(message) {
+    constructor() {
+        this.subscriptions = [];
+        this.queue = [];
+    }
+    sendMessage(partition, channel, address, content) {
         // Loopback
-        this.recieveMessage(message.partition, message.channel, message.address, message.content);
+        this.recieveMessage(partition, channel, address, content);
     }
     ;
     recieveMessage(partition, channel, address, content) {
@@ -55,10 +70,13 @@ export class MessageTransport {
     dispatchMessage(message) {
         for (let sub of this.subscriptions) {
             if ((sub.partition == null ||
+                message.partition == null ||
                 sub.partition == message.partition) &&
                 (sub.channel == null ||
+                    message.channel == null ||
                     sub.channel == message.channel) &&
                 (sub.address == null ||
+                    message.address == null ||
                     sub.address == message.address)) {
                 sub.reciever.onMessage(message);
             }

@@ -1,5 +1,4 @@
 import { Adapter } from "adapter";
-import { Message } from 'messagetransport';
 import { get } from 'config';
 import { request } from "http";
 import { Partitions, SystemChannels } from "protocol";
@@ -132,13 +131,13 @@ export class AppveyorAdapter extends Adapter {
         if (this.build != this.buildinfo["build"]["version"] &&
             this.build["jobs"][0]["artifactsCount"] > 0) {
             this.build = this.buildinfo["build"]["version"];
-            this.transport.sendMessage(new Message(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null));
+            this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null);
         }
     }
     ;
     process() {
         if ((new Date().getTime() - this.poll_timer) > this.poll_interval) {
-            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug, this.parseBuild);
+            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug, (buf) => this.parseBuild(buf));
         }
     }
     ;

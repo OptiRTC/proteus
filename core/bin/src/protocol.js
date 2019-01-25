@@ -40,6 +40,7 @@ export var PoolChannels;
 (function (PoolChannels) {
     PoolChannels["STATUS"] = "status";
     PoolChannels["QUERY"] = "query";
+    PoolChannels["TASK"] = "task";
 })(PoolChannels || (PoolChannels = {}));
 ;
 export var AdapterChannels;
@@ -53,6 +54,7 @@ export var AdapterChannels;
 export var SystemChannels;
 (function (SystemChannels) {
     SystemChannels["STORAGE"] = "storage";
+    SystemChannels["RELEASESTORAGE"] = "releasestorage";
 })(SystemChannels || (SystemChannels = {}));
 ;
 //# sourceMappingURL=protocol.js.map

@@ -1,5 +1,3 @@
-import { Message } from "messagetransport";
-import { UniqueID } from "uniqueid";
 import { Partitions, WorkerChannels } from "protocol";
 export var WorkerState;
 (function (WorkerState) {
@@ -9,11 +7,10 @@ export var WorkerState;
     WorkerState[WorkerState["ERROR"] = 3] = "ERROR";
 })(WorkerState || (WorkerState = {}));
 ;
-export class Worker extends UniqueID {
-    constructor(name, pool, platform, transport, timeout = 180) {
-        super();
-        this.name = name;
-        this.pool = pool;
+export class Worker {
+    constructor(id, pool_id, platform, transport, timeout = 180) {
+        this.id = id;
+        this.pool_id = pool_id;
         this.platform = platform;
         this.transport = transport;
         this.timeout = timeout;
@@ -29,7 +26,7 @@ export class Worker extends UniqueID {
                 this.heartbeat = new Date().getTime();
                 break;
             case WorkerChannels.STATUS:
-                this.state = message.content['state'];
+                this.state = message.content.state in WorkerState ? message.content.state : WorkerState.ERROR;
                 break;
             default:
                 break;
@@ -41,7 +38,11 @@ export class Worker extends UniqueID {
         this.task = task;
         this.task.started = new Date().getTime();
         this.task.worker_id = this.id;
-        this.transport.sendMessage(new Message(Partitions.WORKERS, WorkerChannels.TASK, this.id, task));
+        this.transport.sendMessage(Partitions.WORKERS, WorkerChannels.TASK, this.id, task.toJSON());
+    }
+    ;
+    destroy() {
+        this.transport.unsubscribe(this, Partitions.WORKERS, null, this.id);
     }
     ;
     finish() {

@@ -1,4 +1,3 @@
-import { Message } from "messagetransport";
 import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "protocol";
 import { UniqueID } from "uniqueid";
 import { readFileSync } from "fs";
@@ -16,7 +15,7 @@ export class Adapter extends UniqueID {
     ;
     startJob() {
         // First request storage, do any extraction
-        this.transport.sendMessage(new Message(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null));
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null);
     }
     ;
     loadJob(store) {
@@ -27,11 +26,11 @@ export class Adapter extends UniqueID {
         // Find tests.json
         // Crack into TestComponents
         // Send job message
-        let config = JSON.parse(readFileSync(store.path + "/tests.json", 'UFT-8'));
+        let config = JSON.parse(readFileSync(store.path + "/tests.json", 'UTF-8'));
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
         //config defines the tests
-        this.transport.sendMessage(new Message(Partitions.JOBS, JobChannels.NEW, this.id, config));
+        this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
     }
     ;
     onMessage(message) {
@@ -41,13 +40,18 @@ export class Adapter extends UniqueID {
                 break;
             case AdapterChannels.RESULT:
                 this.handleResults(message.content);
+                this.cleanupStorage(message.content[0].task.storage_id);
                 break;
             case AdapterChannels.QUERY:
-                this.transport.sendMessage(new Message(Partitions.ADAPTER, AdapterChannels.STATUS, this.name, { "status": "active" }));
+                this.transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STATUS, this.name, { "status": "active" });
                 break;
             default:
                 break;
         }
+    }
+    ;
+    cleanupStorage(storage_id) {
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.RELEASESTORAGE, storage_id, null);
     }
     ;
     handleResults(results) {

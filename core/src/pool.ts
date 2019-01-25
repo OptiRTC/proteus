@@ -19,7 +19,7 @@ export class Pool implements TransportClient
         this.transport.subscribe(
             this,
             Partitions.POOLS,
-            PoolChannels.QUERY,
+            null,
             this.id);
         this.transport.subscribe(
             this,
@@ -36,6 +36,8 @@ export class Pool implements TransportClient
             Partitions.TASKS,
             TaskChannels.ABORT,
             null);
+        this.queued_tasks = [];
+        this.active_tasks = [];
         this.workers = [];
         this.query_timer = new Date().getTime();
         this.query_interval = 180;
@@ -46,18 +48,20 @@ export class Pool implements TransportClient
       switch(message.channel)
         {
             case PoolChannels.QUERY:
-                this.transport.sendMessage(new Message(
+                this.transport.sendMessage(
                     Partitions.POOLS,
                     PoolChannels.STATUS,
                     this.id,
-                    this));
+                    this);
+                break;
+            case PoolChannels.TASK:
+                this.addTasks(message.content);
                 break;
             case TaskChannels.ABORT:
                 {
                     let index = this.queued_tasks.findIndex((task) => task.id == message.address);
                     if (index != -1)
                     {
-                        this.queued_tasks[index].abort(this.transport);
                         this.queued_tasks.splice(index, 1);
                     }
                 }
@@ -65,7 +69,6 @@ export class Pool implements TransportClient
                     let index = this.active_tasks.findIndex((task)=> task.id == message.address);
                     if (index != -1)
                     {
-                        this.active_tasks[index].abort(this.transport);
                         this.active_tasks.splice(index, 1);
                     }
                 }
@@ -82,17 +85,20 @@ export class Pool implements TransportClient
             case WorkerChannels.STATUS:
                 // Check that worker still belongs to us
                 // otherwise remove
-                let index = this.workers.findIndex((w) => w.id == message.content["id"]);
-                if (index != -1)
+                let index = this.workers.findIndex((w) => w.id == message.address);
+                if (typeof(message.content.pool_id) != 'undefined')
                 {
-                    if(message.content["pool"] != this.id)
+                    if (index != -1)
                     {
-                        this.removeWorker(this.workers[index]);
-                    }
-                } else {
-                    if (message.content["pool"] == this.id)
-                    {
-                        this.discoverWorker(message);
+                        if(message.content.pool_id != this.id)
+                        {
+                            this.removeWorker(this.workers[index]);
+                        }
+                    } else {
+                        if (message.content.pool_id == this.id)
+                        {
+                            this.discoverWorker(message);
+                        }
                     }
                 }
                 break;
@@ -115,36 +121,37 @@ export class Pool implements TransportClient
         if (selected_worker == null)
         {
             selected_worker = this.addWorker(new Worker(
-                message.content['name'],
+                message.address,
                 this.id,
-                message.content['platform'],
+                message.content.platform,
                 this.transport,
                 180));
         }
 
-        this.transport.sendMessage(new Message(
+        this.transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.CONFIG,
             this.id,
             {
-                "pool": this.id
-            }));
+                "pool_id": this.id
+            });
     };
 
     public addWorker(worker:Worker)
     {
-        if (this.workers.indexOf(worker) == -1)
+        if (this.workers.findIndex((w) => (w.id == worker.id)) == -1)
         {
-            worker.pool = this.id;
+            worker.pool_id = this.id;
             this.workers.push(worker);
         }
     };
 
     public removeWorker(worker:Worker)
     {
-        let index = this.workers.indexOf(worker);
+        let index = this.workers.findIndex((w) => worker.id == w.id);
         if (index != -1)
         {
+            worker.destroy();
             this.workers.splice(index, 1);
         }
     };
@@ -185,11 +192,11 @@ export class Pool implements TransportClient
         if ((new Date().getTime() - this.query_timer) > this.query_interval)
         {
             this.query_timer = new Date().getTime();
-            this.transport.sendMessage(new Message(
+            this.transport.sendMessage(
                 Partitions.WORKERS,
                 WorkerChannels.QUERY,
                 null,
-                { "pool": this.id}));
+                { "pool_id": this.id});
         }
         // Dequeue tasks to idle workers until we run out of one or the other
         for(let worker of this.workers)

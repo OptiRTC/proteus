@@ -1,5 +1,22 @@
 import {Partitions} from "protocol";
 
+export interface Transportable {
+    toJSON():any; // Deflate nested types
+    fromJSON(content:any):Transportable; // Inflate nested types
+};
+
+export function ArrayToJSON(input:Transportable[]):any[]
+{
+    return input.map((item) => item.toJSON());
+};
+
+export function ArrayFromJSON<T extends Transportable>(ctor: new(content?:any) => T, input:any[]): T[]
+{
+    return input.map((item) => {
+        return new ctor().fromJSON(item) as T;
+    });
+};
+
 export class Message
 {
     constructor(
@@ -31,13 +48,19 @@ export class MessageTransport
     protected subscriptions:DispatchSubscription[];
     protected queue:Message[];
 
-    public sendMessage(message:Message) {
+    constructor()
+    {
+        this.subscriptions = [];
+        this.queue = [];
+    }
+
+    public sendMessage(partition:Partitions, channel:string, address:string, content:any) {
         // Loopback
         this.recieveMessage(
-            message.partition,
-            message.channel,
-            message.address,
-            message.content);
+            partition,
+            channel,
+            address,
+            content);
     };
 
     public recieveMessage(partition:Partitions, channel:string, address:string, content:any)
@@ -83,10 +106,13 @@ export class MessageTransport
         for(let sub of this.subscriptions)
         {
             if ((sub.partition == null ||
+                 message.partition == null ||
                  sub.partition == message.partition) &&
                 (sub.channel == null ||
+                 message.channel == null ||
                  sub.channel == message.channel) &&
                 (sub.address == null ||
+                 message.address == null ||
                  sub.address == message.address))
             {
                 sub.reciever.onMessage(message);

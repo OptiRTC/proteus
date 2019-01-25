@@ -1,6 +1,5 @@
 import { Adapter } from "adapter";
 import { watch, readFileSync, writeFileSync } from 'fs';
-import { Message } from "messagetransport";
 import { ncp } from 'ncp';
 import { Partitions, SystemChannels } from "protocol";
 export class FileChangeAdapter extends Adapter {
@@ -8,17 +7,17 @@ export class FileChangeAdapter extends Adapter {
         super(transport, "Watch:" + buildpath);
         this.buildpath = buildpath;
         this.resultspath = resultspath;
-        this.watcher = watch(buildpath, this.onChange);
+        this.watcher = watch(this.buildpath, (e, f) => this.onChange());
     }
     ;
     getBuild() {
         // Look for metadata.json
-        let config = JSON.parse(readFileSync(this.buildpath + "/tests.json", 'UFT-8'));
+        let config = JSON.parse(readFileSync(this.buildpath + "/tests.json", 'UFT-8').toString());
         return config["build"];
     }
     ;
-    onChange(event, filename) {
-        this.transport.sendMessage(new Message(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null));
+    onChange() {
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.STORAGE, this.id, null);
     }
     ;
     handleResults(results) {

@@ -1,29 +1,30 @@
-import {Partitions, JobChannels, TaskChannels, AdapterChannels} from "protocol";
+import {Partitions, JobChannels, TaskChannels, AdapterChannels, PoolChannels} from "protocol";
 import {Platforms}  from "platforms";
 import {TestComponent} from "testcomponents";
 import {Task} from "task";
-import {TestCases} from "result";
-import {Pool} from "pool";
-import {Message, MessageTransport, TransportClient} from "messagetransport";
+import {TestCaseResults} from "result";
+import { Message, MessageTransport, TransportClient} from "messagetransport";
 import { UniqueID } from "uniqueid";
 
 export class Job extends UniqueID implements TransportClient
 {
     protected tasks:Task[];
-    protected results:TestCases[];
+    protected results:TestCaseResults[];
     protected finished:boolean;
     constructor(
         public transport:MessageTransport,
         public build:string,
         public adapter_id:string, // Friendly name of generating source, Manual, Appveyor, Travis, etc
         public platforms:Platforms[], // List of platforms the job will run on
-        public pool:Pool, // Pool to run the job in
+        public pool_id:string, // Pool to run the job in
         public storage_id:string, // URL or other path to storage for this task (artifacts)
         public tests:TestComponent[]) // List of tests to run for this job
     {
         super();
         // Subscribe to all (null) channels in the job partitions
         // with an address equal to ID
+        this.tasks = [];
+        this.results = [];
         this.transport.subscribe(this, Partitions.JOBS, null, this.id);
         this.finished = false;
     };
@@ -46,19 +47,23 @@ export class Job extends UniqueID implements TransportClient
         {
             for(let test of this.tests)
             {
-                let task = new Task(
-                    this.build,
-                    this.id,
-                    null,
-                    platform,
-                    this.pool.id,
-                    this.storage_id,
-                    test);
+                let task = new Task({
+                    build: this.build,
+                    job_id: this.id,
+                    worker_id: null,
+                    platform: platform,
+                    pool_id: this.pool_id,
+                    storage_id: this.storage_id,
+                    test: test.toJSON()});
                 this.transport.subscribe(this, Partitions.TASKS, TaskChannels.RESULT, task.id);
                 this.tasks.push(task);
             }
         }
-        this.pool.addTasks(this.tasks);
+        this.transport.sendMessage(
+            Partitions.POOLS,
+            PoolChannels.TASK,
+            this.pool_id,
+            this.tasks);
     };
 
     public abort()
@@ -66,22 +71,11 @@ export class Job extends UniqueID implements TransportClient
         this.finished = true;
         // For every task without a result
         // mark failed
-        for(let result of this.results)
+        let pending_tasks = this.tasks.filter((t) => this.results.findIndex((r) => r.task == t) == -1);
+        
+        for(let task of pending_tasks)
         {
-            let index = this.tasks.indexOf(result.task);
-            if (index != -1)
-            {
-                this.tasks.splice(index, 1);
-            }
-        }
-
-        for(let task of this.tasks)
-        {
-            this.transport.sendMessage(new Message(
-                Partitions.TASKS,
-                TaskChannels.ABORT,
-                task.id,
-                null));
+            task.abort(this.transport);
         }
     };
 
@@ -89,14 +83,15 @@ export class Job extends UniqueID implements TransportClient
     {
         if (message.channel == TaskChannels.RESULT)
         {
-            let result = <TestCases> message.content;
+            let result = new TestCaseResults(message.content);
+            result.populateSkipped();
             this.addResult(result);
         }
     };
 
-    protected addResult(result:TestCases)
+    protected addResult(result:TestCaseResults)
     {
-        let index = this.tasks.indexOf(result.task);
+        let index = this.tasks.findIndex((t) => t.id == result.task.id);
         if (index != -1)
         {
             this.transport.unsubscribe(this, Partitions.TASKS, TaskChannels.RESULT, result.task.id);
@@ -123,11 +118,11 @@ export class Job extends UniqueID implements TransportClient
                 break;
 
             case JobChannels.QUERY:
-                this.transport.sendMessage(new Message(
+                this.transport.sendMessage(
                     Partitions.JOBS,
                     JobChannels.STATUS,
                     this.id,
-                    this));
+                    this);
                 break;
             default:
                 break;
@@ -141,10 +136,10 @@ export class Job extends UniqueID implements TransportClient
 
     public logResults()
     {
-        this.transport.sendMessage(new Message(
+        this.transport.sendMessage(
             Partitions.ADAPTER,
             AdapterChannels.RESULT,
             this.adapter_id,
-            this.results));
+            this.results);
     };
 };

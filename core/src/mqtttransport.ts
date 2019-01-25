@@ -1,4 +1,4 @@
-import {Message, MessageTransport} from "messagetransport";
+import { MessageTransport} from "messagetransport";
 import {connect, Client} from 'mqtt';
 import { Partitions } from "protocol";
 
@@ -6,7 +6,7 @@ import { Partitions } from "protocol";
 export class MQTTTransport extends MessageTransport
 {
     protected client:Client;
-    protected message_regex;
+    protected message_regex:RegExp;
     constructor(server:string)
     {
         super();
@@ -22,16 +22,16 @@ export class MQTTTransport extends MessageTransport
     protected parseMessage(topic:string, content)
     {
         let parts = this.message_regex.exec(topic);
-        super.recieveMessage(parts[1], parts[2], parts[3], JSON.parse(content));
+        super.recieveMessage(<Partitions>parts[1], parts[2], parts[3], JSON.parse(content));
     };
 
-    public sendMessage(message:Message)
+    public sendMessage(partition:Partitions, channel:string, address:string, content:any)
     {
         if (!this.client.connected && !this.client.reconnecting)
         {
             this.client.reconnect();
         }
-        let topic = "/" + message.partition + "/" + message.channel + "/" + message.address;
-        this.client.publish(topic, JSON.stringify(message.content));
+        let topic = "/" + partition + "/" + channel + "/" + address;
+        this.client.publish(topic, JSON.stringify(content));
     };
 };

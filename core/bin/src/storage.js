@@ -1,17 +1,13 @@
-import { dir } from 'tmp';
+import { dirSync } from 'tmp';
 export class TmpStorage {
     constructor() {
-        dir({ template: '/tmp/proteus-XXXXXX' }, (err, path, cleanup) => {
-            if (err) {
-                console.log("Error getting tmp storage");
-            }
-            this.path = path;
-            this.cleanup = cleanup;
-        });
+        this.obj = dirSync({ template: '/tmp/proteus-XXXXXX' });
+    }
+    get path() {
+        return this.obj.name;
     }
     finish() {
-        this.cleanup();
-        this.path = null;
+        this.obj.removeCallback();
     }
     ;
 }

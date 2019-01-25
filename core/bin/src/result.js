@@ -1,4 +1,6 @@
+import { Task } from "task";
 import { UniqueID } from "uniqueid";
+import { ArrayFromJSON, ArrayToJSON } from "messagetransport";
 export var TestStatus;
 (function (TestStatus) {
     TestStatus["PASSING"] = "passing";
@@ -7,31 +9,91 @@ export var TestStatus;
 })(TestStatus || (TestStatus = {}));
 ;
 export class Result {
-    constructor(name, classname, status, assertions, finished, messages) {
-        this.name = name;
-        this.classname = classname;
-        this.status = status;
-        this.assertions = assertions;
-        this.finished = finished;
-        this.messages = messages;
+    constructor(content) {
+        if (content) {
+            this.fromJSON(content);
+        }
     }
+    toJSON() {
+        return {
+            name: this.name,
+            classname: this.classname,
+            status: this.status,
+            assertions: this.assertions,
+            finished: this.finished,
+            messages: this.messages
+        };
+    }
+    ;
+    fromJSON(content) {
+        this.name = content.name;
+        this.classname = content.classname;
+        this.status = content.status;
+        this.assertions = content.assertions;
+        this.finished = content.finished;
+        this.messages = content.messages;
+        return this;
+    }
+    ;
 }
 ;
-export class TestCases extends UniqueID {
-    constructor(worker_id, passing, failed, task) {
+export class TestCaseResults extends UniqueID {
+    constructor(content) {
         super();
-        this.worker_id = worker_id;
-        this.passing = passing;
-        this.failed = failed;
-        this.task = task;
-        let run;
-        run.concat(this.passing);
-        run.concat(this.failed);
-        this.skipped = [];
-        for (let name of task.test.getSkipped(run)) {
-            this.skipped.push(new Result(name, name, TestStatus.SKIPPED, 0, new Date().getTime(), []));
+        if (content) {
+            this.fromJSON(content);
         }
-        this.timestamp = new Date().getTime();
+        else {
+            this.passing = [];
+            this.failed = [];
+            this.timestamp = new Date().getTime();
+        }
+    }
+    ;
+    populateSkipped() {
+        let run = [];
+        run = run.concat(this.passing);
+        run = run.concat(this.failed);
+        this.skipped = [];
+        let skipped_names = this.task.test.getSkipped(run);
+        for (let name of skipped_names) {
+            let res = new Result();
+            res.classname = res.name = name;
+            res.status = TestStatus.SKIPPED;
+            res.assertions = 0;
+            res.finished = new Date().getTime();
+            res.messages = [];
+            this.skipped.push(res);
+        }
+    }
+    toJSON() {
+        return {
+            id: this.id,
+            worker_id: this.worker_id,
+            passing: ArrayToJSON(this.passing),
+            failed: ArrayToJSON(this.failed),
+            skipped: ArrayToJSON(this.skipped),
+            timestamp: this.timestamp,
+            task: this.task.toJSON()
+        };
+    }
+    ;
+    fromJSON(content) {
+        if (typeof (content.id != 'undefined')) {
+            this.id = content.id;
+        }
+        this.task = typeof (content.task) == 'undefined' ? null : new Task(content.task);
+        this.worker_id = typeof (content.worker_id) == 'undefined' ? null : content.worker_id;
+        this.passing = typeof (content.passing) == 'undefined' ? [] : ArrayFromJSON(Result, content.passing);
+        this.failed = typeof (content.failed) == 'undefined' ? [] : ArrayFromJSON(Result, content.failed);
+        if (typeof (content.skipped) == 'undefined') {
+            this.populateSkipped();
+        }
+        else {
+            this.skipped = ArrayFromJSON(Result, content.skipped);
+        }
+        this.timestamp = content.timestamp;
+        return this;
     }
     ;
 }

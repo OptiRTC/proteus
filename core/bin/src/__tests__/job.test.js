@@ -1,15 +1,28 @@
-import { MessageTransport, Message } from "messagetransport";
+import { MessageTransport } from "messagetransport";
 import { Job } from "job";
 import { Platforms } from "platforms";
 import { TestComponent } from "testcomponents";
 import { Pool } from "pool";
 import { Partitions, JobChannels, AdapterChannels, TaskChannels } from "protocol";
-import { TestCases } from "result";
+import { TestCaseResults } from "result";
+function TestTests() {
+    return [
+        new TestComponent({
+            name: "test",
+            binary: "test.bin",
+            scenario: "test.js",
+            expectations: ["A", "B", "C"]
+        }),
+        new TestComponent({
+            name: "test2",
+            binary: "test2.bin",
+            scenario: "test2.js",
+            expectations: ["A", "B", "C"]
+        })
+    ];
+}
 function TestJob(transport) {
-    return new Job(transport, "test", "test", [Platforms.ELECTRON, Platforms.PHOTON], new Pool("default", transport, 180), "tmp/test", [
-        new TestComponent("test", "test.bin", "test.js", ["A", "B", "C"]),
-        new TestComponent("test2", "test2.bin", "test2.js", ["A", "B", "C"])
-    ]);
+    return new Job(transport, "test", "test", [Platforms.ELECTRON, Platforms.PHOTON], new Pool("default", transport, 180).id, "tmp/test", TestTests());
 }
 ;
 test('tasks count is product of tests and platforms', () => {
@@ -18,7 +31,7 @@ test('tasks count is product of tests and platforms', () => {
             this.taskcount = 0;
         }
         onMessage(message) {
-            this.taskcount = message.content['tasks'].length;
+            this.taskcount = message.content.tasks.length;
         }
         ;
     }
@@ -28,11 +41,11 @@ test('tasks count is product of tests and platforms', () => {
     let job = TestJob(transport);
     transport.subscribe(listener, Partitions.JOBS, JobChannels.STATUS, null);
     job.start();
-    transport.sendMessage(new Message(Partitions.JOBS, JobChannels.QUERY, job.id, null));
+    transport.sendMessage(Partitions.JOBS, JobChannels.QUERY, job.id, null);
     transport.processAll();
     expect(listener.taskcount).toBe(2 * 2);
 });
-test('Abort message cancels pending tasks and fails tests', () => {
+test('Abort message cancels pending tasks and fails tests', done => {
     class StatusListener {
         constructor() {
             this.called = false;
@@ -40,10 +53,9 @@ test('Abort message cancels pending tasks and fails tests', () => {
         ;
         onMessage(message) {
             this.called = true;
-            expect(message.content.tasks.length).toBe(0);
-            expect(message.content.results.length).toBeGreaterThan(0);
-            expect(message.content.pool.active_tasks.length).toBe(0);
-            expect(message.content.pool.queued_tasks.length).toBe(0);
+            expect(message.content.tasks.length).toBe(4);
+            expect(message.content.results.length).toBe(4);
+            done();
         }
         ;
     }
@@ -56,10 +68,10 @@ test('Abort message cancels pending tasks and fails tests', () => {
     job.abort();
     transport.processAll();
     transport.subscribe(listener, Partitions.JOBS, JobChannels.STATUS, null);
-    transport.sendMessage(new Message(Partitions.JOBS, JobChannels.QUERY, job.id, null));
+    transport.sendMessage(Partitions.JOBS, JobChannels.QUERY, job.id, null);
     transport.processAll();
     expect(listener.called).toBe(true);
-});
+}, 160000);
 test('logResults sends to adapter', () => {
     class ResultsListener {
         constructor() {
@@ -68,7 +80,7 @@ test('logResults sends to adapter', () => {
         ;
         onMessage(message) {
             this.called = true;
-            expect(message.content.length).toBeGreaterThan(0);
+            expect(message.content.length).toBe(4);
         }
         ;
     }
@@ -81,7 +93,6 @@ test('logResults sends to adapter', () => {
     transport.processAll();
     job.abort();
     transport.processAll();
-    job.logResults();
     transport.processAll();
     expect(listener.called).toBe(true);
 });
@@ -92,13 +103,21 @@ test('Job Completes when all tasks run', () => {
                 this.active_tasks.push(this.queued_tasks.shift());
             }
             for (let task of this.active_tasks) {
-                this.transport.sendMessage(new Message(Partitions.TASKS, TaskChannels.RESULT, task.id, new TestCases('dummy', [], [], task)));
+                this.transport.sendMessage(Partitions.TASKS, TaskChannels.RESULT, task.id, new TestCaseResults({
+                    worker_id: 'dummy',
+                    passing: [],
+                    failed: [],
+                    task: task
+                }));
             }
         }
         ;
     }
     ;
     class AdapterListener {
+        constructor() {
+            this.called = false;
+        }
         onMessage(message) {
             this.called = true;
         }
@@ -109,10 +128,7 @@ test('Job Completes when all tasks run', () => {
     let listener = new AdapterListener();
     transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.RESULT, null);
     let pool = new DummyPool("default", transport, 180);
-    let job = new Job(transport, "test", "test", [Platforms.ELECTRON, Platforms.PHOTON], pool, "tmp/test", [
-        new TestComponent("test", "test.bin", "test.js", ["A", "B", "C"]),
-        new TestComponent("test2", "test2.bin", "test2.js", ["A", "B", "C"])
-    ]);
+    let job = new Job(transport, "test", "test", [Platforms.ELECTRON, Platforms.PHOTON], pool.id, "tmp/test", TestTests());
     job.start();
     transport.processAll();
     pool.dummy_flipTasks();

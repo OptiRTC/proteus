@@ -1,6 +1,5 @@
 import {Task} from "task";
 import {MessageTransport, Message, TransportClient} from "messagetransport";
-import { UniqueID } from "uniqueid";
 import { Partitions, WorkerChannels} from "protocol";
 import { Platforms } from "platforms";
 
@@ -12,25 +11,25 @@ export enum WorkerState
     ERROR
 };
 
-export class Worker extends UniqueID implements TransportClient
+export class Worker implements TransportClient
 {
     public state:WorkerState;
     public heartbeat:number;
     public task:Task;
 
     constructor(
-        public name:string,
-        public pool:string,
+        public id:string,
+        public pool_id:string,
         public platform:Platforms,
         public transport:MessageTransport,
         public timeout:number = 180)
     {
-        super();
         this.transport.subscribe(this, Partitions.WORKERS, null, this.id);
         this.state = WorkerState.IDLE;
         this.heartbeat = 0;
         this.task = null;
     };
+
 
     public onMessage(message:Message)
     {
@@ -41,7 +40,7 @@ export class Worker extends UniqueID implements TransportClient
                 break;
 
             case WorkerChannels.STATUS:
-                this.state = message.content['state'];
+                this.state = message.content.state in WorkerState ? message.content.state : WorkerState.ERROR;
                 break;
             default:
                 break;
@@ -54,7 +53,16 @@ export class Worker extends UniqueID implements TransportClient
         this.task = task;
         this.task.started = new Date().getTime();
         this.task.worker_id = this.id;
-        this.transport.sendMessage(new Message(Partitions.WORKERS, WorkerChannels.TASK, this.id, task));
+        this.transport.sendMessage(
+            Partitions.WORKERS,
+            WorkerChannels.TASK,
+            this.id,
+            task.toJSON());
+    };
+
+    public destroy()
+    {
+        this.transport.unsubscribe(this, Partitions.WORKERS, null, this.id);
     };
 
     public finish()

@@ -1,13 +1,13 @@
 import { Job } from "job";
 import { Pool } from "pool";
-import { Message } from "messagetransport";
+import { ArrayFromJSON } from "messagetransport";
 import { Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels } from "protocol";
 import { Platforms } from "platforms";
 import { TmpStorage } from "storage";
+import { TestComponent } from "testcomponents";
 export class ProteusCore {
     constructor(transport) {
         this.transport = transport;
-        this.createPool("default");
         this.transport.subscribe(this, Partitions.JOBS, null, null);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.DISCOVER, null);
         this.transport.subscribe(this, Partitions.SYSTEM, null, null);
@@ -17,6 +17,7 @@ export class ProteusCore {
         this.default_tests = [];
         this.stores = [];
         this.adapters = [];
+        this.createPool("default");
     }
     ;
     onMessage(message) {
@@ -40,7 +41,14 @@ export class ProteusCore {
             case SystemChannels.STORAGE:
                 let store = new TmpStorage();
                 this.stores.push(store);
-                this.transport.sendMessage(new Message(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, message.address, store));
+                this.transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, message.address, store);
+                break;
+            case SystemChannels.RELEASESTORAGE:
+                let index = this.stores.findIndex((s) => s.path == message.content);
+                if (index != -1) {
+                    this.stores[index].finish();
+                    this.stores.splice(index, 1);
+                }
                 break;
             default:
                 break;
@@ -48,16 +56,17 @@ export class ProteusCore {
     }
     ;
     handleWorkerDiscovery(message) {
-        this.selectPool(message.content['pool']).discoverWorker(message);
+        this.selectPool(message.content.pool).discoverWorker(message);
     }
     ;
     handleJobMessage(message) {
         if (message.channel == JobChannels.NEW) {
             let platforms = [];
-            if (message.content["platforms"] != undefined) {
+            if (message.content.platforms != undefined) {
                 // Should be an array of strings
-                for (let platform of message.content["platforms"]) {
-                    if (platform in Platforms) {
+                for (let platform of message.content.platforms) {
+                    platform = platform.toLowerCase();
+                    if (Object.values(Platforms).includes(platform)) {
                         platforms.push(platform);
                     }
                 }
@@ -66,23 +75,13 @@ export class ProteusCore {
                 platforms = this.default_platforms;
             }
             let tests = [];
-            if (message.content["tests"] != undefined) {
-                tests = message.content["tests"];
+            if (message.content.tests != undefined) {
+                tests = ArrayFromJSON(TestComponent, message.content.tests);
             }
             else {
                 tests = this.default_tests;
             }
-            let pool = null;
-            if (message.content["pool"] != undefined) {
-                pool = "default";
-            }
-            else {
-                pool = message.content["pool"];
-            }
-            if (this.pools.findIndex((p) => p.id == pool) == -1) {
-                this.createPool(pool);
-            }
-            this.createJob(message.content["adapter_id"], message.content["build"], platforms, pool, tests).start();
+            this.createJob(message.content.adapter_id, message.content.build, platforms, message.content.pool_id, tests).start();
         }
     }
     ;
@@ -117,8 +116,8 @@ export class ProteusCore {
         }
     }
     ;
-    createPool(name, limit = 100) {
-        let pool = new Pool(name, this.transport, limit);
+    createPool(id, limit = 100) {
+        let pool = new Pool(id, this.transport, limit);
         this.pools.push(pool);
         return pool;
     }
@@ -129,22 +128,25 @@ export class ProteusCore {
         return store.path;
     }
     ;
-    selectPool(name) {
+    selectPool(id) {
+        if (typeof (id) == 'undefined' || id == null) {
+            id = "default";
+        }
         let selected_pool = null;
         for (let pool of this.pools) {
-            if (pool.id == name) {
+            if (pool.id == id) {
                 selected_pool = pool;
                 break;
             }
         }
         if (selected_pool == null) {
-            selected_pool = this.createPool(name);
+            selected_pool = this.createPool(id);
         }
         return selected_pool;
     }
     ;
     createJob(adapter_id, build, platforms, poolname, tests) {
-        let job = new Job(this.transport, build, adapter_id, platforms, this.selectPool(poolname), this.newStorage(), tests);
+        let job = new Job(this.transport, build, adapter_id, platforms, this.selectPool(poolname).id, this.newStorage(), tests);
         this.jobs.push(job);
         return job;
     }

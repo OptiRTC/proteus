@@ -4,7 +4,7 @@ import { Message, TransportClient, MessageTransport } from 'messagetransport';
 import { Partitions, SystemChannels } from 'protocol';
 import { writeFileSync } from 'fs';
 
-test('changed file triggers STORAGE request', () => {
+test('changed file triggers STORAGE request', done => {
 	class StorageListener implements TransportClient {
 		public called:boolean;
 		constructor()
@@ -13,9 +13,10 @@ test('changed file triggers STORAGE request', () => {
 		}
 		public onMessage(message:Message)
 		{
+			this.called = true;
 			expect(message.address).toBe(adapter.id);
 			expect(message.channel).toBe(SystemChannels.STORAGE);
-			this.called = true;
+			done();
 		};
 	};
 	let transport = new MessageTransport();
@@ -29,6 +30,8 @@ test('changed file triggers STORAGE request', () => {
 		resultstore.path);
 
 	// Create a file
-	writeFileSync(buildstore.path + "/tests.json", '{"build":"test"}');
-	while(!listener.called){}
+	setTimeout(() => writeFileSync(buildstore.path + "/tests.json", '{"build":"test"}'), 1000);
+	setInterval(() => {
+		transport.processAll();
+	}, 100);
 });

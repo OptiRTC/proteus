@@ -1,6 +1,6 @@
 import { Adapter } from "adapter";
-import {Message, MessageTransport} from 'messagetransport';
-import { TestCases } from "result";
+import {MessageTransport} from 'messagetransport';
+import { TestCaseResults } from "result";
 import { get } from 'config';
 import { request, IncomingMessage } from "http";
 import { TmpStorage } from "storage";
@@ -38,7 +38,7 @@ export class AppveyorAdapter extends Adapter
         return this.build;
     };
 
-    public handleResults(results:TestCases[])
+    public handleResults(results:TestCaseResults[])
     {
         // Upload Test to URL
         let task = results[0].task;
@@ -166,11 +166,11 @@ export class AppveyorAdapter extends Adapter
             this.build["jobs"][0]["artifactsCount"] > 0)
         {
             this.build = this.buildinfo["build"]["version"];
-            this.transport.sendMessage(new Message(
+            this.transport.sendMessage(
                 Partitions.SYSTEM,
                 SystemChannels.STORAGE,
                 this.id,
-                null));
+                null);
         }
     };
 
@@ -178,7 +178,7 @@ export class AppveyorAdapter extends Adapter
     {
         if ((new Date().getTime() - this.poll_timer) > this.poll_interval)
         {
-            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug, this.parseBuild);
+            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug, (buf) => this.parseBuild(buf));
         }
     };
 };
