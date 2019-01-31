@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Jest",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/test",
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/test/node_modules/.bin/jest",
+          "--runInBand"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      }
+    ]
+  }

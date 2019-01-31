@@ -1,0 +1,13 @@
+{
+    "Worker": {
+        "id": "TestWorker",
+        "timeout": 30,
+        "pool": "default",
+        "platform": "test",
+        "heartbeat": 120
+    },
+    "Serial": {
+        "port": "/dev/ttyACM0",
+        "dfuPort": "/dev/ttyACM0"
+    }
+}

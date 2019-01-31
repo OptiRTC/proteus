@@ -1,0 +1,29 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "description": "Nodejs Worker",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OptiRTC/proteus.git"
+  },
+  "author": "Austen Higgins-Cassidy (ahigginscassidy@optirtc.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OptiRTC/proteus/issues"
+  },
+  "homepage": "https://github.com/OptiRTC/proteus#readme",
+  "devDependencies": {
+    "@types/config": "0.0.34",
+    "@types/node": "^10.12.18",
+    "@types/onoff": "^3.2.1",
+    "@types/serialport": "^7.0.1",
+    "config": "^3.0.1",
+    "onoff": "^3.2.2",
+    "serialport": "^7.1.4",
+    "typescript": "^3.2.4"
+  }
+}
