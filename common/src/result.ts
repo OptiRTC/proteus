@@ -78,6 +78,10 @@ export class TestCaseResults extends UniqueID implements Transportable
         run = run.concat(this.passing);
         run = run.concat(this.failed);
         this.skipped = [];
+        if (this.task == null)
+        {
+            return;
+        }
         let skipped_names = this.task.test.getSkipped(run);
         for(let name of skipped_names)
         {

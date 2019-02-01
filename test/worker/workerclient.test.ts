@@ -10,9 +10,12 @@ test('Loads config', () => {
 
 test('Runs test', done => {
     class ResultListener implements TransportClient {
+        public called:boolean;
+        constructor() { this.called = false; }
         public onMessage(message:Message)
         {
             expect(message.address).toBe("TestWorker");
+            this.called = true;
             done();
         };
     };
@@ -40,12 +43,16 @@ test('Runs test', done => {
         });
     transport.processAll();
     expect(client.id).toBe("TestWorker");
+    setInterval(() => transport.process(), 250);
 });
 
 test('Handles passing scenario', done => {
     class ResultListener implements TransportClient {
+        public called:boolean;
+        constructor() { this.called = false; }
         public onMessage(message:Message)
         {
+            this.called = true;
             expect(message.address).toBe("TestWorker");
             expect(message.content.passing.length).toBe(1);
             expect(message.content.failed.length).toBe(0);
@@ -69,19 +76,23 @@ test('Handles passing scenario', done => {
             test: {
                 name: "TestScen",
                 binary: "app.bin",
-                scenario: "testscen.js",
+                scenario: "worker/testscen.js",
                 expectations: [ "TestScen" ]
             },
             timestamp: new Date().getTime(),
         });
     transport.processAll();
     expect(client.id).toBe("TestWorker");
+    setInterval(() => transport.process(), 250);
 });
 
 test('Catches failed scenario', done => {
     class ResultListener implements TransportClient {
+        public called:boolean;
+        constructor() { this.called = false; }
         public onMessage(message:Message)
         {
+            this.called = true;
             expect(message.address).toBe("TestWorker");
             expect(message.content.passing.length).toBe(0);
             expect(message.content.failed.length).toBe(1);
@@ -105,19 +116,23 @@ test('Catches failed scenario', done => {
             test: {
                 name: "FailScen",
                 binary: "app.bin",
-                scenario: "failscen.js",
+                scenario: "worker/failscen.js",
                 expectations: [ "FailScen" ]
             },
             timestamp: new Date().getTime(),
         });
     transport.processAll();
     expect(client.id).toBe("TestWorker");
+    setInterval(() => transport.process(), 250);
 }, 180000);
 
 test('Query response', done => {
     class StatusListener implements TransportClient {
+        public called:boolean;
+        constructor() { this.called = false; }
         public onMessage(message:Message)
         {
+            this.called = true;
             expect(message.address).toBe("TestWorker");
             done();
         };
@@ -133,4 +148,5 @@ test('Query response', done => {
         null);
     transport.processAll();
     expect(client.id).toBe("TestWorker");
+    setInterval(() => transport.process(), 250);
 });

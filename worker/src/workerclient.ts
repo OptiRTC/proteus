@@ -8,6 +8,7 @@ import { get } from 'config';
 import { TestComponent } from 'common:testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common:result';
 import { Task } from 'common:task';
+import { resolve as abspath}  from 'path';
 
 class TestDevice implements Device
 {
@@ -25,7 +26,8 @@ class TestDevice implements Device
             if (test.scenario != null)
             {
                 // Scenarios are a promise chain
-                let scenario = require("./" + test.scenario);
+                let scenario = require(abspath("./" + test.scenario));
+                console.log(scenario);
                 scenario.run().then(() => {
                     clearTimeout(this.rejectTimeout);
                     resolve(new TestCaseResults({
@@ -114,7 +116,7 @@ export class WorkerClient extends Worker
             case WorkerChannels.TASK:
                 this.state = WorkerState.BUSY;
                 this.sendStatus();
-                let res = null;
+                let res:TestCaseResults = null;
                 this.task = new Task(message.content);
                 this.device.runTest(this.task.test).then((result:TestCaseResults) =>
                 {
@@ -122,6 +124,7 @@ export class WorkerClient extends Worker
                     res.worker_id = get('Worker.id');
                     res.timestamp = new Date().getTime();
                     res.task = this.task;
+                    res.populateSkipped();
                 }).catch((e) => {
                     res = new TestCaseResults({
                         worker_id: get('Worker.id'),

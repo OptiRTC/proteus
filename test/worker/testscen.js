@@ -1,3 +1,5 @@
+const config = require('config');
+
 class TestScenario {
     constructor()
     {
@@ -6,8 +8,7 @@ class TestScenario {
         this.timeout = null;
         this.root_promise = null;
         this.root_start = null;
-        this.messages = ["Well", "Hello", "there"];
-        this.messageWaits = [];
+        this.messages = ["Well", "hello", "there"];
         this.port = null;
         this.pass = null;
         this.fail = null;
@@ -26,24 +27,22 @@ class TestScenario {
             this.timeout = setTimeout(() => reject(), this.DEFAULT_TIMEOUT);
             this.pass = resolve;
             this.fail = reject;
-            this.messageWaits = []; 
             this.root_start(); // resolves the root promise and starts the chain
         });
     }
 
+    // Example block
     getMessage(msg)
     {
         return new Promise((resolve, reject) =>
         {
             let input = this.messages.shift();
-            this.messageWaits.push(() => {
-                if (input == msg)
-                {
-                    resolve();
-                    return true;
-                }
-                return false;
-           });
+            if (input == msg)
+            {
+                resolve();
+                return;
+            }
+            reject("Message unexpected");
         });
     }
 
@@ -52,15 +51,13 @@ class TestScenario {
         return new Promise((resolve, reject) =>
         {
             let msg = this.messages.shift();
-            this.messageWaits.push(() => {
-                let match = test.exec(msg);
-                if (match != null)
-                {
-                    resolve(match);
-                    return true;
-                }
-                return false;
-            });
+            let match = test.exec(msg);
+            if (match != null)
+            {
+                resolve(match);
+                return;
+            }
+            reject("Regex not matched");
         });
     }
 
@@ -69,18 +66,17 @@ class TestScenario {
         return new Promise((resolve, reject) =>
         {
             let msg = this.messages.shift();
-            this.messageWaits.push(() => {
-                let device_state = this.parseDeviceState(msg);
-                for(let key in expected_state)
+           
+            let device_state = this.parseDeviceState(msg);
+            for(let key in expected_state)
+            {
+                if (expected_state[key] != device_state[key])
                 {
-                    if (expected_state[key] != device_state[key])
-                    {
-                        return false;
-                    }    
-                }
-                resolve(device_state);
-                return true;
-            });
+                    reject("Device State did not match");
+                    return;
+                }    
+            }
+            resolve(device_state);
         });
     }
 
@@ -97,10 +93,10 @@ class TestScenario {
 
 const defaultTest = new TestScenario();
 // Build promise chain
-defaultTest.first().then(
+defaultTest.first().then(() =>
     defaultTest.getMessage("Well").then(() =>
     defaultTest.getRegex(/hello/).then(() =>
     defaultTest.getState({ propertyname: "there"}).then(() =>
     defaultTest.finish()))));
 
-exports.default = defaultTest;
+var exports = module.exports = defaultTest;
