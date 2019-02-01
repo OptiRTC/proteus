@@ -1,15 +1,15 @@
-import { ProteusCore } from "core:proteuscore";
+import { WorkerClient } from "worker:workerclient";
 import { MQTTTransport } from "common:mqtttransport";
 
-export class MQTTDaemon
+export class MQTTClient
 {
     protected mqtt:MQTTTransport;
-    protected core:ProteusCore;
+    protected worker:WorkerClient;
     protected active:boolean;
     constructor(mqtt_ip:string)
     {
         this.mqtt = new MQTTTransport(mqtt_ip);
-        this.core = new ProteusCore(this.mqtt);
+        this.worker = new WorkerClient(this.mqtt);
         this.active = true;
         process.on('SIGTERM', () => {
             this.active = false;
@@ -18,9 +18,13 @@ export class MQTTDaemon
 
     public run()
     {
-        while(this.active)
+        // Event driven, we don't need to poll, just stay alive for MQTT
+        setInterval(() => 
         {
-            this.core.process();
-        }
+            if (!this.active)
+            {
+                process.exit(0);
+            }
+        });
     };
 };
