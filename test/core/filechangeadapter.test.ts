@@ -1,7 +1,7 @@
-import { TmpStorage } from 'core:storage';
-import { FileChangeAdapter } from 'core:filechangeadapter';
-import { Message, TransportClient, MessageTransport } from 'common:messagetransport';
-import { Partitions, SystemChannels } from 'common:protocol';
+import { TmpStorage } from 'core/storage';
+import { FileChangeAdapter } from 'core/filechangeadapter';
+import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
+import { Partitions, SystemChannels } from 'common/protocol';
 import { writeFileSync } from 'fs';
 
 test('changed file triggers STORAGE request', done => {

@@ -1,11 +1,11 @@
-import { Platforms } from "common:platforms";
-import { TransportClient, MessageTransport, Message } from "common:messagetransport";
-import { Pool } from "core:pool";
-import { Partitions, WorkerChannels, TaskChannels } from "common:protocol";
-import { Task } from "common:task";
-import { TestComponent } from "common:testcomponents";
-import { Worker, WorkerState } from "common:worker";
-import { Result, TestCaseResults, TestStatus } from "common:result";
+import { Platforms } from "common/platforms";
+import { TransportClient, MessageTransport, Message } from "common/messagetransport";
+import { Pool } from "core/pool";
+import { Partitions, WorkerChannels, TaskChannels } from "common/protocol";
+import { Task } from "common/task";
+import { TestComponent } from "common/testcomponents";
+import { Worker, WorkerState } from "common/worker";
+import { Result, TestCaseResults, TestStatus } from "common/result";
 
 test('Worker Discovery sets worker config', () => {
     class WorkerConfListener implements TransportClient

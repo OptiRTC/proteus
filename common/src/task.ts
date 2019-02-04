@@ -1,9 +1,9 @@
-import {Platforms} from "common:platforms";
-import {TestComponent} from "common:testcomponents";
-import {UniqueID} from "common:uniqueid";
-import { MessageTransport, Transportable } from "common:messagetransport";
-import { Partitions, TaskChannels } from "common:protocol";
-import { Result, TestStatus, TestCaseResults } from "common:result";
+import {Platforms} from "common/platforms";
+import {TestComponent} from "common/testcomponents";
+import {UniqueID} from "common/uniqueid";
+import { MessageTransport, Transportable } from "common/messagetransport";
+import { Partitions, TaskChannels } from "common/protocol";
+import { Result, TestStatus, TestCaseResults } from "common/result";
 
 export class Task extends UniqueID implements Transportable
 {

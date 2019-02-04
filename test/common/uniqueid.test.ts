@@ -1,4 +1,4 @@
-import { UniqueID } from 'common:uniqueid';
+import { UniqueID } from 'common/uniqueid';
 
 // Note: to be comprehensive we need to run this unil
 // X collisions occur, which is probably a huge run

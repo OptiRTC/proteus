@@ -1,5 +1,5 @@
-import { TransportClient, MessageTransport, Message } from "common:messagetransport";
-import { Partitions } from "common:protocol";
+import { TransportClient, MessageTransport, Message } from "common/messagetransport";
+import { Partitions } from "common/protocol";
 
 class DummySubscriber implements TransportClient
 {

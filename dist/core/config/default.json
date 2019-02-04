@@ -1,0 +1,8 @@
+{
+    "Appveyor": {
+        "Account": "AccountName",
+        "Project": "ProjectName",
+        "Token": "API Token",
+        "PollInterval": 300
+    }
+}

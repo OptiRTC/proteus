@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es2018",
         "module": "commonjs",
         "lib": [
             "es2018",
@@ -17,6 +17,7 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "allowSyntheticDefaultImports": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "composite": true
     }
 }

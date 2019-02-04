@@ -1,0 +1,30 @@
+{
+  "name": "proteus",
+  "version": "2.0.0",
+  "description": "A test-facilitation framework for distributed hardware",
+  "private": true,
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "build-worker": "cd worker; tsc -b; cd ..; webpack --config worker.webpack.config.js",
+    "build-core": "cd core; tsc -b; cd ..; webpack --config core.webpack.config.js",
+    "test": "cd test; tsc -b; npx jest; cd .."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OptiRTC/proteus.git"
+  },
+  "author": "Austen Higgins-Cassidy (ahigginscassidy@optirtc.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OptiRTC/proteus/issues"
+  },
+  "homepage": "https://github.com/OptiRTC/proteus#readme",
+  "devDependencies": {
+    "shebang-loader": "0.0.1",
+    "webpack": "^4.29.0",
+    "webpack-cli": "^3.2.1"
+  }
+}

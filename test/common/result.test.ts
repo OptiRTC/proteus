@@ -1,7 +1,7 @@
-import { TestStatus, Result, TestCaseResults } from 'common:result';
-import { Task } from 'common:task';
-import { Platforms } from 'common:platforms';
-import { TestComponent } from 'common:testcomponents';
+import { TestStatus, Result, TestCaseResults } from 'common/result';
+import { Task } from 'common/task';
+import { Platforms } from 'common/platforms';
+import { TestComponent } from 'common/testcomponents';
 
 test('Serialization', () => {
 	let result = new Result({

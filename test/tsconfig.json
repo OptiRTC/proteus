@@ -11,13 +11,13 @@
 				"node_modules/*",
 				"@types/*"
 			],
-			"common:*" : [
+			"common/*" : [
 				"../common/src/*"
             ],
-            "core:*" : [
+            "core/*" : [
                 "../core/src/*"
             ],
-            "worker:*" : [
+            "worker/*" : [
                 "../worker/src/*"
             ]
 		},

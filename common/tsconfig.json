@@ -10,14 +10,12 @@
 				"node_modules/*",
 				"@types/*"
 			],
-			"common:*" : [
+			"common/*" : [
 				"src/*"
 			]
-		},
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true
+		}
 	},
-	"include": [
-		"src/*"
+    "include": [
+		"./src/*"
 	]
 }

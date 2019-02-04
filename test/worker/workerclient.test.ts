@@ -1,6 +1,6 @@
-import { Message, MessageTransport, TransportClient } from 'common:messagetransport';
-import { WorkerClient } from 'worker:workerclient';
-import { Partitions, WorkerChannels, TaskChannels } from 'common:protocol';
+import { Message, MessageTransport, TransportClient } from 'common/messagetransport';
+import { WorkerClient } from 'worker/workerclient';
+import { Partitions, WorkerChannels, TaskChannels } from 'common/protocol';
 
 test('Loads config', () => {
     let transport = new MessageTransport();

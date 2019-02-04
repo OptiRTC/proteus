@@ -1,7 +1,7 @@
 {
-  "name": "worker",
+  "name": "proteus-worker",
   "version": "1.0.0",
-  "description": "Nodejs Worker",
+  "description": "Proteus Worker",
   "main": "index.js",
   "scripts": {
     "test": "npx jest"

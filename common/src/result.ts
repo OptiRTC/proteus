@@ -1,6 +1,6 @@
-import {Task} from "common:task";
-import {UniqueID} from "common:uniqueid";
-import { Transportable, ArrayFromJSON, ArrayToJSON } from "common:messagetransport";
+import {Task} from "common/task";
+import {UniqueID} from "common/uniqueid";
+import { Transportable, ArrayFromJSON, ArrayToJSON } from "common/messagetransport";
 
 export enum TestStatus
 {

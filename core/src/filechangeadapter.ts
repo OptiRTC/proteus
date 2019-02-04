@@ -1,10 +1,10 @@
-import { Adapter } from "core:adapter";
+import { Adapter } from "core/adapter";
 import { watch, FSWatcher, readFileSync, writeFileSync } from 'fs';
-import { MessageTransport } from "common:messagetransport";
-import { TestCaseResults } from "common:result";
-import { TmpStorage } from "core:storage";
+import { MessageTransport } from "common/messagetransport";
+import { TestCaseResults } from "common/result";
+import { TmpStorage } from "core/storage";
 import { ncp } from 'ncp';
-import { Partitions, SystemChannels } from "common:protocol";
+import { Partitions, SystemChannels } from "common/protocol";
 
 export class FileChangeAdapter extends Adapter
 {

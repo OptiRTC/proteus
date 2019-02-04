@@ -1,7 +1,7 @@
 {
 	"extends": "../proteusconfig",
 	"compilerOptions": {
-		"allowJs": true,
+		"composite": true,
 		"baseUrl": "./",
 		"paths" : {
 			"*" : [
@@ -9,20 +9,18 @@
 				"node_modules/*",
 				"@types/*"
 			],
-			"common:*" : [
+			"common/*" : [
 				"../common/src/*"
 			],
-			"core:*" : [
+			"core/*" : [
 				"src/*"
 			] 
-		},
-		"allowSyntheticDefaultImports": true,
-		"esModuleInterop": true
+		}
 	},
+    "include": [
+		"./src/*"
+	],
 	"references": [
 		{ "path": "../common" }
-	],
-	"include": [
-		"src"
 	]
 }

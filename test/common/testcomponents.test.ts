@@ -1,5 +1,5 @@
-import { TestComponent } from 'common:testcomponents';
-import { TestStatus, Result } from 'common:result';
+import { TestComponent } from 'common/testcomponents';
+import { TestStatus, Result } from 'common/result';
 
 test('Serializiaton', () => {
 	let test = new TestComponent({

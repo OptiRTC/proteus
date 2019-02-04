@@ -1,4 +1,4 @@
-import {Partitions} from "common:protocol";
+import {Partitions} from "common/protocol";
 
 export interface Transportable {
     toJSON():any; // Deflate nested types

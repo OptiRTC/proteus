@@ -1,8 +1,8 @@
-import { WorkerState, Worker } from 'common:worker';
-import { Platforms } from 'common:platforms';
-import { Message, TransportClient, MessageTransport } from 'common:messagetransport';
-import { Partitions, WorkerChannels } from 'common:protocol';
-import { Task } from 'common:task';
+import { WorkerState, Worker } from 'common/worker';
+import { Platforms } from 'common/platforms';
+import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
+import { Partitions, WorkerChannels } from 'common/protocol';
+import { Task } from 'common/task';
 
 test('Responds to heartbeat', () =>{
 	let transport = new MessageTransport();

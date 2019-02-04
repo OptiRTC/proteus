@@ -1,9 +1,9 @@
-import { Device } from "worker:device";
+import { Device } from "worker/device";
 import { get } from "config";
 import SerialPort = require('serialport');
 import { exec } from 'child_process';
 import { exists } from "fs";
-import { TestCaseResults, Result, TestStatus } from "common:result";
+import { TestCaseResults, Result, TestStatus } from "common/result";
 
 export class ParticleDevice implements Device
 {

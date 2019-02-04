@@ -1,5 +1,5 @@
 {
-  "name": "core",
+  "name": "proteus",
   "version": "1.0.0",
   "description": "Proteus Core",
   "main": "execute.js",
@@ -16,6 +16,9 @@
     "@types/node": "^10.12.18",
     "@types/tmp": "0.0.33",
     "@types/unzip": "^0.1.1",
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
+    "babel-preset-es2018": "^1.0.0",
     "config": "^3.0.1",
     "http": "0.0.0",
     "jest": "^23.6.0",
@@ -28,7 +31,8 @@
     "unzip": "^0.1.11"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "babel-node --presets es2018 bin/core/src/execute.js"
   },
   "repository": {
     "type": "git",

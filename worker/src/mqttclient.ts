@@ -1,10 +1,10 @@
-import { WorkerClient } from "worker:workerclient";
-import { MQTTTransport } from "common:mqtttransport";
+import { WorkerClient } from "worker/workerclient";
+import { MQTTTransport } from "common/mqtttransport";
 
 export class MQTTClient
 {
     protected mqtt:MQTTTransport;
-    protected worker:WorkerClient;
+    protected worker/WorkerClient;
     protected active:boolean;
     constructor(mqtt_ip:string)
     {

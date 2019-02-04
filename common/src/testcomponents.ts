@@ -1,5 +1,5 @@
-import { Result } from "common:result";
-import { Transportable } from 'common:messagetransport';
+import { Result } from "common/result";
+import { Transportable } from 'common/messagetransport';
 
 export class TestComponent implements Transportable {
     

@@ -1,10 +1,10 @@
-import { MessageTransport, Message, TransportClient } from "common:messagetransport";
-import { Job } from "core:job";
-import { Platforms } from "common:platforms";
-import { TestComponent } from "common:testcomponents";
-import { Pool } from "core:pool";
-import { Partitions, JobChannels, AdapterChannels, TaskChannels } from "common:protocol";
-import { TestCaseResults } from "common:result";
+import { MessageTransport, Message, TransportClient } from "common/messagetransport";
+import { Job } from "core/job";
+import { Platforms } from "common/platforms";
+import { TestComponent } from "common/testcomponents";
+import { Pool } from "core/pool";
+import { Partitions, JobChannels, AdapterChannels, TaskChannels } from "common/protocol";
+import { TestCaseResults } from "common/result";
 
 function TestTests(): TestComponent[]
 {

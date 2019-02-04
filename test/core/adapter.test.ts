@@ -1,7 +1,7 @@
-import { Adapter } from 'core:adapter';
-import { Message, TransportClient, MessageTransport } from 'common:messagetransport';
-import { TmpStorage } from 'core:storage';
-import { Partitions, JobChannels, AdapterChannels } from 'common:protocol';
+import { Adapter } from 'core/adapter';
+import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
+import { TmpStorage } from 'core/storage';
+import { Partitions, JobChannels, AdapterChannels } from 'common/protocol';
 import { writeFileSync } from 'fs';
 
 test('Adapter getBuild', () => {

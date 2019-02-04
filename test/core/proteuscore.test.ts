@@ -1,14 +1,14 @@
-import { MessageTransport, Message, TransportClient } from "common:messagetransport";
-import { ProteusCore } from "core:proteuscore";
-import { Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels, TaskChannels } from "common:protocol";
-import { TestComponent } from "common:testcomponents";
-import { Adapter } from "core:adapter";
-import { TestCaseResults, Result, TestStatus } from "common:result";
-import { WorkerState } from "common:worker";
+import { MessageTransport, Message, TransportClient } from "common/messagetransport";
+import { ProteusCore } from "core/proteuscore";
+import { Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels, TaskChannels } from "common/protocol";
+import { TestComponent } from "common/testcomponents";
+import { Adapter } from "core/adapter";
+import { TestCaseResults, Result, TestStatus } from "common/result";
+import { WorkerState } from "common/worker";
 import { writeFileSync } from "fs";
-import { TmpStorage } from "core:storage";
-import { Platforms } from "common:platforms";
-import { Task } from "common:task";
+import { TmpStorage } from "core/storage";
+import { Platforms } from "common/platforms";
+import { Task } from "common/task";
 
 test('Worker Discovery', () => {
     let transport = new MessageTransport();

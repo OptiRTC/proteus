@@ -1,13 +1,13 @@
-import { WorkerState, Worker } from 'common:worker';
-import { Device } from 'worker:device';
-import { ParticleDevice } from 'worker:particledevice';
-import { Message, MessageTransport } from 'common:messagetransport';
-import { Platforms } from 'common:platforms';
-import { WorkerChannels, TaskChannels, Partitions } from 'common:protocol';
+import { WorkerState, Worker } from 'common/worker';
+import { Device } from 'worker/device';
+import { ParticleDevice } from 'worker/particledevice';
+import { Message, MessageTransport } from 'common/messagetransport';
+import { Platforms } from 'common/platforms';
+import { WorkerChannels, TaskChannels, Partitions } from 'common/protocol';
 import { get } from 'config';
-import { TestComponent } from 'common:testcomponents';
-import { Result, TestCaseResults, TestStatus } from 'common:result';
-import { Task } from 'common:task';
+import { TestComponent } from 'common/testcomponents';
+import { Result, TestCaseResults, TestStatus } from 'common/result';
+import { Task } from 'common/task';
 import { resolve as abspath}  from 'path';
 
 class TestDevice implements Device

@@ -1,5 +1,5 @@
-import { ProteusCore } from "core:proteuscore";
-import { MQTTTransport } from "common:mqtttransport";
+import { ProteusCore } from "core/proteuscore";
+import { MQTTTransport } from "common/mqtttransport";
 
 export class MQTTDaemon
 {

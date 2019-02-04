@@ -1,4 +1,4 @@
-import { TmpStorage } from 'core:storage';
+import { TmpStorage } from 'core/storage';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 test('Storage supports create/write/read', () => {

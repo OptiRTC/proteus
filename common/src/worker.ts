@@ -1,7 +1,7 @@
-import {Task} from "common:task";
-import {MessageTransport, Message, TransportClient} from "common:messagetransport";
-import { Partitions, WorkerChannels} from "common:protocol";
-import { Platforms } from "common:platforms";
+import {Task} from "common/task";
+import {MessageTransport, Message, TransportClient} from "common/messagetransport";
+import { Partitions, WorkerChannels} from "common/protocol";
+import { Platforms } from "common/platforms";
 
 export enum WorkerState
 {

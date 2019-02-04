@@ -26,8 +26,8 @@ module.exports = {
       "<rootDir>/../worker/src"
     ],
     "moduleNameMapper": {
-      "common:(.*)": "<rootDir>/../common/src/$1",
-      "core:(.*)": "<rootDir>/../core/src/$1",
-      "worker:(.*)": "<rootDir>/../worker/src/$1"
+      "common/(.*)": "<rootDir>/../common/src/$1",
+      "core/(.*)": "<rootDir>/../core/src/$1",
+      "worker/(.*)": "<rootDir>/../worker/src/$1"
     }
   }
