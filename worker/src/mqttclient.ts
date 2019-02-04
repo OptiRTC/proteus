@@ -4,7 +4,7 @@ import { MQTTTransport } from "common/mqtttransport";
 export class MQTTClient
 {
     protected mqtt:MQTTTransport;
-    protected worker/WorkerClient;
+    protected worker:WorkerClient;
     protected active:boolean;
     constructor(mqtt_ip:string)
     {

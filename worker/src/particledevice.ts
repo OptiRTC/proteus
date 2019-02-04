@@ -26,7 +26,7 @@ export class ParticleDevice implements Device
         this.finished = false;
         this.testcase = new TestCaseResults();
         this.assertion_regex = new RegExp(/^Assertion\s(.+)\:\s(.+)/);
-        this.test_regex = new RegExp(/^Test\s([a-zA-Z9-0_]+)\s([a-z]+)\./);
+        this.test_regex = new RegExp(/^Test\s([A-Za-z0-9_]+)\s([a-z]+)\./);
         this.summary_regex = new RegExp(/^Test\ssummary\:\s([0-9]+)\spassed,\s([0-9]+)\sfailed,\sand\s([0-9]+)\sskipped,\sout\sof\s([0-9]+)\stest\(s\)\./);
     };
 

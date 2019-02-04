@@ -26,5 +26,8 @@
     "shebang-loader": "0.0.1",
     "webpack": "^4.29.0",
     "webpack-cli": "^3.2.1"
+  },
+  "dependencies": {
+    "serialport": "^7.1.4"
   }
 }

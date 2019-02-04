@@ -12,7 +12,8 @@ module.exports = {
         ]
     },
     node: {
-        fs: "empty"
+        fs: "empty",
+        serialport: "empty"
     },
     mode: 'development',
     optimization: {
