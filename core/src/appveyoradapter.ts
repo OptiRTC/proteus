@@ -3,7 +3,7 @@ import {MessageTransport} from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
 import { request, IncomingMessage } from "http";
-import { TmpStorage } from "core/storage";
+import { TmpStorage } from "common/storage";
 import { Partitions, SystemChannels } from "common/protocol";
 import { Extract } from "unzip";
 import { getJunitXml } from 'junit-xml';

@@ -22,5 +22,6 @@ export class MQTTDaemon
         {
             this.core.process();
         }
+        this.core.close();
     };
 };

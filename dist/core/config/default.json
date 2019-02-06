@@ -1,4 +1,7 @@
 {
+    "Files": {
+        "Port": 3000
+    },
     "Appveyor": {
         "Account": "AccountName",
         "Project": "ProjectName",

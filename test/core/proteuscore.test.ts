@@ -6,9 +6,12 @@ import { Adapter } from "core/adapter";
 import { TestCaseResults, Result, TestStatus } from "common/result";
 import { WorkerState } from "common/worker";
 import { writeFileSync } from "fs";
-import { TmpStorage } from "core/storage";
+import { TmpStorage } from "common/storage";
 import { Platforms } from "common/platforms";
 import { Task } from "common/task";
+import request from 'request';
+import AdmZip from 'adm-zip';
+import * as fs from 'fs';
 
 test('Worker Discovery', () => {
     let transport = new MessageTransport();
@@ -26,6 +29,7 @@ test('Worker Discovery', () => {
         }));
     transport.processAll();
     expect(core.poolCount()).toBe(1);
+    core.close();
 });
 
 test('Storage Handling', () => {
@@ -50,6 +54,40 @@ test('Storage Handling', () => {
         null));
     transport.processAll();
     expect(listener.called).toBe(true);
+    core.close();
+});
+
+test('File Delivery', done => {
+    let test_object = {test: "X"};
+    class StorageListener implements TransportClient
+    {
+        public onMessage(message:Message)
+        {
+            expect(message.content.path).toBeTruthy();
+            writeFileSync(message.content.path + "/test.txt", JSON.stringify(test_object), "utf8");
+            let storeUrl = 'http://localhost:3000/' + message.content.id;
+            let targetFile = '/tmp/unzip-' + message.content.id + '.zip';
+            request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
+                fs.writeFileSync(targetFile, body, 'binary');
+                let zip = new AdmZip(targetFile);
+                zip.extractAllTo('/tmp/unzip-' + message.content.id, true);
+                let result_object = JSON.parse(fs.readFileSync('/tmp/unzip-' + message.content.id + '/test.txt', "utf8"));
+                expect(result_object).toEqual(test_object);
+                core.close();
+                done();
+            });
+        };
+    };
+    let transport = new MessageTransport();
+    let listener = new StorageListener();
+    transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.STORAGEREADY, null);
+    let core = new ProteusCore(transport);
+    core.handleSystemMessage(new Message(
+        Partitions.SYSTEM,
+        SystemChannels.STORAGE,
+        null,
+        null));
+    transport.processAll();
 });
 
 test('Job Creation', () => {
@@ -76,6 +114,7 @@ test('Job Creation', () => {
     
     expect(core.poolCount()).toBe(1);
     expect(core.jobCount()).toBe(1);
+    core.close();
 });
 
 test('Adapter Registration', () => {
@@ -84,6 +123,7 @@ test('Adapter Registration', () => {
     expect(core.adapterCount()).toBe(0);
     core.registerAdapter(new Adapter(transport, "test"));
     expect(core.adapterCount()).toBe(1);
+    core.close();
 });
 
 test('Adapter-to-worker-to-adapter', done => {
@@ -183,6 +223,7 @@ test('Adapter-to-worker-to-adapter', done => {
             expect(results[0].passing.length).toBe(4);
             expect(results[1].passing.length).toBe(4);
             this.done = true;
+            core.close();
             done();
         };
     };

@@ -1,77 +1,20 @@
 import { WorkerState, Worker } from 'common/worker';
-import { Device } from 'worker/device';
-import { ParticleDevice } from 'worker/particledevice';
 import { Message, MessageTransport } from 'common/messagetransport';
-import { Platforms } from 'common/platforms';
 import { WorkerChannels, TaskChannels, Partitions } from 'common/protocol';
 import { get } from 'config';
 import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
 import { Task } from 'common/task';
+import { Storage } from 'common/storage';
 import { resolve as abspath}  from 'path';
-
-class TestDevice implements Device
-{
-    public started:boolean;
-    public aborted:boolean;
-    public rejectTimeout:any;
-    public result_resolve:any;
-    public testcase:TestCaseResults;
-
-    public runTest(test:TestComponent):Promise<TestCaseResults> { 
-        return new Promise<TestCaseResults>((resolve, reject) =>
-        {
-            this.result_resolve = resolve;
-            this.started = true;
-            if (test.scenario != null)
-            {
-                // Scenarios are a promise chain
-                let scenario = require(abspath("./" + test.scenario));
-                console.log(scenario);
-                scenario.run().then(() => {
-                    clearTimeout(this.rejectTimeout);
-                    resolve(new TestCaseResults({
-                        worker_id: get('Worker.id'),
-                        timestamp: new Date().getTime(),
-                        passing: [new Result({
-                            name: test.scenario,
-                            classname: test.scenario,
-                            status: TestStatus.PASSING})
-                        ]
-                    }));
-                }).catch((e) => {
-                    resolve(new TestCaseResults({
-                        worker_id: get('Worker.id'),
-                        timestamp: new Date().getTime(),
-                        failed: [new Result({
-                            name: test.scenario,
-                            classname: test.scenario,
-                            status: TestStatus.FAILED,
-                            messages: [e]})
-                        ]
-                    }));
-                });
-            } else {
-                resolve(new TestCaseResults({
-                    worker_id: get('Worker.id'),
-                    timestamp: new Date().getTime(),
-                    passing: [new Result({
-                        name: test.name,
-                        classname: test.name,
-                        status: TestStatus.PASSING
-                    })]
-                }));
-            }
-        });
-    };
-
-    public abortTest() { this.aborted = true; }
-};
+import request from 'request';
+import AdmZip from 'adm-zip';
+import fs from 'fs';
 
 export class WorkerClient extends Worker
 {
-    public device:Device;
     public storage_id:string;
+    public local_storage:Storage;
     public task:Task;
 
     constructor(transport:MessageTransport)
@@ -83,27 +26,8 @@ export class WorkerClient extends Worker
             transport,
             get("Worker.timeout"));
         this.task = null;
-        switch(this.platform)
-        {
-            case Platforms.ELECTRON:
-            case Platforms.PHOTON:
-            case Platforms.BORON:
-            case Platforms.ARGON:
-            case Platforms.XENON:
-                // Particle CLI
-                this.device = new ParticleDevice();
-                break;
-            
-            case Platforms.x86:
-            case Platforms.x86_64:
-                this.device = null; // NOT IMPLEMENTED
-                break;
-
-            default:
-                this.device = new TestDevice();
-                break;
-        }
-        setInterval(() => this.sendHeartbeat(), get('Worker.heartbeat'));
+        this.local_storage = null;
+        setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
 
     public onMessage(message:Message)
@@ -118,34 +42,36 @@ export class WorkerClient extends Worker
                 this.sendStatus();
                 let res:TestCaseResults = null;
                 this.task = new Task(message.content);
-                this.device.runTest(this.task.test).then((result:TestCaseResults) =>
-                {
-                    res = result;
-                    res.worker_id = get('Worker.id');
-                    res.timestamp = new Date().getTime();
-                    res.task = this.task;
-                    res.populateSkipped();
-                }).catch((e) => {
-                    res = new TestCaseResults({
-                        worker_id: get('Worker.id'),
-                        timestamp: new Date().getTime(),
-                        task: this.task,
-                        failed: [new Result({
-                            name: message.content.name,
-                            classname: message.content.name,
-                            status: TestStatus.FAILED,
-                            messages: [e]})
-                        ]
+                this.fetchArtifacts()
+                    .then(() => this.runTest(this.task.test))
+                    .then((result:TestCaseResults) =>
+                    {
+                        res = result;
+                        res.worker_id = get('Worker.id');
+                        res.timestamp = new Date().getTime();
+                        res.task = this.task;
+                        res.populateSkipped();
+                    }).catch((e) => {
+                        res = new TestCaseResults({
+                            worker_id: get('Worker.id'),
+                            timestamp: new Date().getTime(),
+                            task: this.task,
+                            failed: [new Result({
+                                name: message.content.name,
+                                classname: message.content.name,
+                                status: TestStatus.FAILED,
+                                messages: [e]})
+                            ]
+                        });
+                    }).finally(() => {
+                        this.transport.sendMessage(
+                            Partitions.TASKS,
+                            TaskChannels.RESULT,
+                            this.id,
+                            res.toJSON());
+                        this.state = WorkerState.IDLE;
+                        this.sendStatus();
                     });
-                }).finally(() => {
-                    this.transport.sendMessage(
-                        Partitions.TASKS,
-                        TaskChannels.RESULT,
-                        this.id,
-                        res.toJSON());
-                    this.state = WorkerState.IDLE;
-                    this.sendStatus();
-                });
                 break;
             case WorkerChannels.CONFIG:
                 break;
@@ -170,5 +96,70 @@ export class WorkerClient extends Worker
             WorkerChannels.HEARTBEAT,
             this.id,
             null);
+    };
+
+    public runTest(test:TestComponent):Promise<TestCaseResults> { 
+        return new Promise<TestCaseResults>((resolve, reject) =>
+        {
+            let rejectTimeout = setTimeout(() => reject("Test Timed out (" + this.timeout + ")"), this.timeout);
+            if (test.scenario != null)
+            {
+                // Scenarios are a promise chain
+                let scenario = require(abspath(this.local_storage.path + "/" + test.scenario));
+                console.log(scenario);
+                scenario.run().then(() => {
+                    resolve(new TestCaseResults({
+                        worker_id: get('Worker.id'),
+                        timestamp: new Date().getTime(),
+                        passing: [new Result({
+                            name: test.scenario,
+                            classname: test.scenario,
+                            status: TestStatus.PASSING})
+                        ]
+                    }));
+                }).catch((e) => {
+                    resolve(new TestCaseResults({
+                        worker_id: get('Worker.id'),
+                        timestamp: new Date().getTime(),
+                        failed: [new Result({
+                            name: test.scenario,
+                            classname: test.scenario,
+                            status: TestStatus.FAILED,
+                            messages: [e]})
+                        ]
+                    }));
+                }).finally(() => {
+                    clearTimeout(rejectTimeout);
+                });
+            } else {
+                reject("Scenario not found");
+            }
+        });
+    };
+
+    public fetchArtifacts(): Promise<void>
+    {
+        return new Promise<void>((resolve, reject) => {
+            if (this.storage_id == null)
+            {
+                reject();
+                return;
+            }
+            let storeUrl = "http://" + get('Core.FileServer') + "/" + this.storage_id;
+            this.local_storage = new Storage();
+            request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
+                if (err != null ||
+                    res.statusCode != 200)
+                {
+                    reject();
+                    return;
+                }
+                let targetFile = '/tmp/artifacts.zip';
+                fs.writeFileSync(targetFile, body, 'binary');
+                let zip = new AdmZip(targetFile);
+                zip.extractAllTo(this.local_storage.path, true);
+                resolve();
+            });
+        });
     };
 };

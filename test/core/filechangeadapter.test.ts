@@ -1,4 +1,4 @@
-import { TmpStorage } from 'core/storage';
+import { TmpStorage } from 'common/storage';
 import { FileChangeAdapter } from 'core/filechangeadapter';
 import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
 import { Partitions, SystemChannels } from 'common/protocol';

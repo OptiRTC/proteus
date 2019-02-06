@@ -36,7 +36,7 @@ test('Runs test', done => {
             test: {
                 name: "App Scen",
                 binary: "app.bin",
-                scenario: null,
+                scenario: "testscen.js",
                 expectations: [ "Test" ]
             },
             timestamp: new Date().getTime(),

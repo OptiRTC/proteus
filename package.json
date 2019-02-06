@@ -28,6 +28,7 @@
     "webpack-cli": "^3.2.1"
   },
   "dependencies": {
+    "node-gyp": "^3.8.0",
     "serialport": "^7.1.4"
   }
 }

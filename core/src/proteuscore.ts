@@ -3,9 +3,13 @@ import {Pool} from "core/pool";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON} from 'common/messagetransport';
 import {Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels} from 'common/protocol';
 import {Platforms} from "common/platforms";
-import {TmpStorage} from "core/storage";
+import {TmpStorage} from "common/storage";
 import {TestComponent} from "common/testcomponents";
 import { Adapter } from "core/adapter";
+import { get } from "config";
+import express from 'express';
+import { Server } from "http";
+import archiver from "archiver";
 
 export class ProteusCore implements TransportClient
 {
@@ -16,6 +20,7 @@ export class ProteusCore implements TransportClient
     protected default_tests:TestComponent[];
     protected stores:TmpStorage[];
     protected adapters:Adapter[];
+    public file_access:Server;
 
     constructor(public transport:MessageTransport)
     {
@@ -28,6 +33,21 @@ export class ProteusCore implements TransportClient
         this.default_tests = [];
         this.stores = [];
         this.adapters = [];
+        let app = express();
+        app.get('/:id', (req, res) =>
+        {
+            let store = this.stores.find((s) => s.id == req.params.id);
+            if (store)
+            {
+                let arch = archiver('zip', { zlib: { level: 9}});
+                arch.pipe(res);
+                arch.directory(store.path, false);
+                arch.finalize();
+            } else {
+                res.status(404).send('Not Found');
+            }
+        });
+        this.file_access = app.listen(get("Files.Port"));
         this.createPool("default");
     };
 
@@ -172,7 +192,7 @@ export class ProteusCore implements TransportClient
     {
         let store = new TmpStorage();
         this.stores.push(store);
-        return store.path;
+        return store.id;
     };
 
     protected selectPool(id:string):Pool
@@ -215,5 +235,10 @@ export class ProteusCore implements TransportClient
     public registerAdapter(adapter:Adapter)
     {
         this.adapters.push(adapter);
+    };
+
+    public close()
+    {
+        this.file_access.close();
     };
 };

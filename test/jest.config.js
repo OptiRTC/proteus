@@ -1,9 +1,5 @@
 module.exports = {
-    "roots": [
-      "<rootDir>/core",
-      "<rootDir>/common",
-      "<rootDir>/worker"
-    ],
+    
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
     },
@@ -17,13 +13,7 @@ module.exports = {
       "node"
     ],
     "moduleDirectories": [
-      "node_modules",
-      "core",
-      "common",
-      "worker",
-      "<rootDir>/../common/src",
-      "<rootDir>/../core/src",
-      "<rootDir>/../worker/src"
+      "node_modules"
     ],
     "moduleNameMapper": {
       "common/(.*)": "<rootDir>/../common/src/$1",

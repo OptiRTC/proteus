@@ -2,7 +2,7 @@ import { MessageTransport, TransportClient, Message } from "common/messagetransp
 import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "common/protocol";
 import { UniqueID } from "common/uniqueid";
 import {readFileSync} from "fs";
-import { TmpStorage } from "core/storage";
+import { TmpStorage } from "common/storage";
 import { TestCaseResults } from "common/result";
 
 export class Adapter extends UniqueID implements TransportClient
