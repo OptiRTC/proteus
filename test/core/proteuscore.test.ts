@@ -32,29 +32,26 @@ test('Worker Discovery', () => {
     core.close();
 });
 
-test('Storage Handling', () => {
+test('Storage Handling', done => {
     class StorageListener implements TransportClient
     {
-        public called:boolean;
-        constructor() {this.called = false; }
         public onMessage(message:Message)
         {
-            this.called = true;
+            core.close();
             expect(message.content.path).toBeTruthy();
+            done();
         };
     };
     let transport = new MessageTransport();
     let listener = new StorageListener();
     transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.STORAGEREADY, null);
     let core = new ProteusCore(transport);
-    core.handleSystemMessage(new Message(
+    transport.sendMessage(
         Partitions.SYSTEM,
         SystemChannels.STORAGE,
         null,
-        null));
+        null);
     transport.processAll();
-    expect(listener.called).toBe(true);
-    core.close();
 });
 
 test('File Delivery', done => {
@@ -68,12 +65,12 @@ test('File Delivery', done => {
             let storeUrl = 'http://localhost:3000/' + message.content.id;
             let targetFile = '/tmp/unzip-' + message.content.id + '.zip';
             request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
+                core.close();
                 fs.writeFileSync(targetFile, body, 'binary');
                 let zip = new AdmZip(targetFile);
                 zip.extractAllTo('/tmp/unzip-' + message.content.id, true);
                 let result_object = JSON.parse(fs.readFileSync('/tmp/unzip-' + message.content.id + '/test.txt', "utf8"));
                 expect(result_object).toEqual(test_object);
-                core.close();
                 done();
             });
         };
@@ -82,11 +79,11 @@ test('File Delivery', done => {
     let listener = new StorageListener();
     transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.STORAGEREADY, null);
     let core = new ProteusCore(transport);
-    core.handleSystemMessage(new Message(
+    transport.sendMessage(
         Partitions.SYSTEM,
         SystemChannels.STORAGE,
         null,
-        null));
+        null);
     transport.processAll();
 });
 
@@ -96,7 +93,7 @@ test('Job Creation', () => {
     expect(core.jobCount()).toBe(0);
     expect(core.poolCount()).toBe(1);
 
-    core.handleJobMessage(new Message(
+    transport.sendMessage(
         Partitions.JOBS,
         JobChannels.NEW,
         "0",
@@ -110,8 +107,8 @@ test('Job Creation', () => {
                 binary: 'test1.bin',
                 scenario: null,
                 expectations: ['test1']})]
-        }));
-    
+        });
+    transport.processAll();
     expect(core.poolCount()).toBe(1);
     expect(core.jobCount()).toBe(1);
     core.close();
@@ -195,7 +192,7 @@ test('Adapter-to-worker-to-adapter', done => {
         public loadJob(store:TmpStorage)
         {
             writeFileSync(
-                store.path + "/tests.json", 
+                store.path + "/test.json", 
                 JSON.stringify(
                 {
                     "name": "ProductTests",
@@ -219,11 +216,11 @@ test('Adapter-to-worker-to-adapter', done => {
 
         public handleResults(results:TestCaseResults[])
         {
+            core.close();
             expect(results.length).toBe(2);
             expect(results[0].passing.length).toBe(4);
             expect(results[1].passing.length).toBe(4);
             this.done = true;
-            core.close();
             done();
         };
     };

@@ -1,15 +1,11 @@
 import {Job} from "core/job";
 import {Pool} from "core/pool";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON} from 'common/messagetransport';
-import {Partitions, WorkerChannels, AdapterChannels, SystemChannels, JobChannels} from 'common/protocol';
+import {Partitions, WorkerChannels, JobChannels} from 'common/protocol';
 import {Platforms} from "common/platforms";
-import {TmpStorage} from "common/storage";
 import {TestComponent} from "common/testcomponents";
 import { Adapter } from "core/adapter";
-import { get } from "config";
-import express from 'express';
-import { Server } from "http";
-import archiver from "archiver";
+import { Artifacts } from 'common/artifacts';
 
 export class ProteusCore implements TransportClient
 {
@@ -18,36 +14,19 @@ export class ProteusCore implements TransportClient
     protected default_pool:Pool;
     protected default_platforms:Platforms[];
     protected default_tests:TestComponent[];
-    protected stores:TmpStorage[];
     protected adapters:Adapter[];
-    public file_access:Server;
+    protected artifacts:Artifacts;
 
     constructor(public transport:MessageTransport)
     {
         this.transport.subscribe(this, Partitions.JOBS, null, null);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.DISCOVER, null);
-        this.transport.subscribe(this, Partitions.SYSTEM, null, null);
         this.jobs = [];
         this.pools = [];
         this.default_platforms = [];
         this.default_tests = [];
-        this.stores = [];
         this.adapters = [];
-        let app = express();
-        app.get('/:id', (req, res) =>
-        {
-            let store = this.stores.find((s) => s.id == req.params.id);
-            if (store)
-            {
-                let arch = archiver('zip', { zlib: { level: 9}});
-                arch.pipe(res);
-                arch.directory(store.path, false);
-                arch.finalize();
-            } else {
-                res.status(404).send('Not Found');
-            }
-        });
-        this.file_access = app.listen(get("Files.Port"));
+        this.artifacts = new Artifacts(transport);
         this.createPool("default");
     };
 
@@ -61,35 +40,6 @@ export class ProteusCore implements TransportClient
             case Partitions.WORKERS:
                 this.handleWorkerDiscovery(message);
                 break;
-            case Partitions.SYSTEM:
-                this.handleSystemMessage(message);
-                break;
-            default:
-                break;
-        }
-    };
-
-    public handleSystemMessage(message:Message)
-    {
-        switch(message.channel)
-        {
-            case SystemChannels.STORAGE:
-                let store = new TmpStorage();
-                this.stores.push(store);
-                this.transport.sendMessage(
-                    Partitions.ADAPTER,
-                    AdapterChannels.STORAGEREADY,
-                    message.address,
-                    store);
-                break;
-            case SystemChannels.RELEASESTORAGE:
-                let index = this.stores.findIndex((s) => s.path == message.content);
-                if (index != -1)
-                {
-                    this.stores[index].finish();
-                    this.stores.splice(index, 1);
-                }
-                break;
             default:
                 break;
         }
@@ -97,7 +47,12 @@ export class ProteusCore implements TransportClient
 
     public handleWorkerDiscovery(message:Message)
     {
-        this.selectPool(message.content.pool).discoverWorker(message);
+        let pool = "default";
+        if (message.content != null)
+        {
+            pool = message.content.pool;
+        }
+        this.selectPool(pool).discoverWorker(message);
     };
 
     public handleJobMessage(message:Message)
@@ -133,7 +88,8 @@ export class ProteusCore implements TransportClient
                 message.content.build,
                 platforms,
                 message.content.pool_id,
-                tests).start();
+                tests,
+                message.content.store_id).start();
         }
     };
 
@@ -188,13 +144,6 @@ export class ProteusCore implements TransportClient
         return pool;
     };
 
-    protected newStorage():string
-    {
-        let store = new TmpStorage();
-        this.stores.push(store);
-        return store.id;
-    };
-
     protected selectPool(id:string):Pool
     {
         if (typeof(id) == 'undefined' || id == null)
@@ -218,15 +167,20 @@ export class ProteusCore implements TransportClient
         return selected_pool;
     };
 
-    protected createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[])
+    protected createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[], store_id:string)
     {
+        if (store_id == undefined ||
+            store_id == null)
+        {
+            store_id = this.artifacts.newStorage();
+        }
         let job = new Job(
             this.transport,
             build,
             adapter_id,
             platforms,
             this.selectPool(poolname).id,
-            this.newStorage(),
+            store_id,
             tests);
         this.jobs.push(job);
         return job;
@@ -239,6 +193,6 @@ export class ProteusCore implements TransportClient
 
     public close()
     {
-        this.file_access.close();
-    };
+        this.artifacts.close();
+    }
 };

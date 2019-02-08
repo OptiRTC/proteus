@@ -11,14 +11,14 @@
     "Core" : {
         "MessageServer": "mqtt://proteus.localdomain",
         "MessagePort": 1883,
-        "FileServer": "proteus.localdomain",
+        "FileServer": "localhost",
         "FilePort": 3000
     },
     "Worker": {
         "id": "TestWorker",
         "timeout": 30,
         "pool": "default",
-        "platform": "test",
+        "platform": "electron",
         "heartbeat": 120
     },
     "Serial": {

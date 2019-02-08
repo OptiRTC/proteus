@@ -5,16 +5,15 @@ import { get } from 'config';
 import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
 import { Task } from 'common/task';
-import { Storage } from 'common/storage';
-import { resolve as abspath}  from 'path';
+import { TmpStorage } from 'common/storage';
+import { relative }  from 'path';
 import request from 'request';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
 
 export class WorkerClient extends Worker
 {
-    public storage_id:string;
-    public local_storage:Storage;
+    public local_storage:TmpStorage;
     public task:Task;
 
     constructor(transport:MessageTransport)
@@ -27,6 +26,7 @@ export class WorkerClient extends Worker
             get("Worker.timeout"));
         this.task = null;
         this.local_storage = null;
+        this.sendDiscovery();
         setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
 
@@ -43,7 +43,7 @@ export class WorkerClient extends Worker
                 let res:TestCaseResults = null;
                 this.task = new Task(message.content);
                 this.fetchArtifacts()
-                    .then(() => this.runTest(this.task.test))
+                    .then(() => this.runTest(this.task.test)
                     .then((result:TestCaseResults) =>
                     {
                         res = result;
@@ -67,11 +67,11 @@ export class WorkerClient extends Worker
                         this.transport.sendMessage(
                             Partitions.TASKS,
                             TaskChannels.RESULT,
-                            this.id,
+                            this.task.id,
                             res.toJSON());
                         this.state = WorkerState.IDLE;
                         this.sendStatus();
-                    });
+                    }));
                 break;
             case WorkerChannels.CONFIG:
                 break;
@@ -79,6 +79,15 @@ export class WorkerClient extends Worker
                 break;
         }
     };
+
+    public sendDiscovery()
+    {
+        this.transport.sendMessage(
+            Partitions.WORKERS,
+            WorkerChannels.DISCOVER,
+            this.id,
+            {pool: this.pool_id, platform: this.platform});
+    }
 
     public sendStatus()
     {
@@ -105,17 +114,15 @@ export class WorkerClient extends Worker
             if (test.scenario != null)
             {
                 // Scenarios are a promise chain
-                let scenario = require(abspath(this.local_storage.path + "/" + test.scenario));
-                console.log(scenario);
-                scenario.run().then(() => {
+                let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
+                let scenario = require(scenario_file).scenario;
+                scenario.run().then((results) => {
+                    results = results.map((item) => new Result(item));
                     resolve(new TestCaseResults({
                         worker_id: get('Worker.id'),
                         timestamp: new Date().getTime(),
-                        passing: [new Result({
-                            name: test.scenario,
-                            classname: test.scenario,
-                            status: TestStatus.PASSING})
-                        ]
+                        passing: results.filter((r) => r.status == TestStatus.PASSING),
+                        failed: results.filter((r) => r.status == TestStatus.FAILED)
                     }));
                 }).catch((e) => {
                     resolve(new TestCaseResults({
@@ -140,13 +147,13 @@ export class WorkerClient extends Worker
     public fetchArtifacts(): Promise<void>
     {
         return new Promise<void>((resolve, reject) => {
-            if (this.storage_id == null)
+            if (this.task.storage_id == null)
             {
                 reject();
                 return;
             }
-            let storeUrl = "http://" + get('Core.FileServer') + "/" + this.storage_id;
-            this.local_storage = new Storage();
+            let storeUrl = "http://" + get('Core.FileServer') + ":" + get('Core.FilePort') + "/" + this.task.storage_id;
+            this.local_storage = new TmpStorage();
             request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
                 if (err != null ||
                     res.statusCode != 200)

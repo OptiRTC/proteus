@@ -1,0 +1,23 @@
+{
+    "name": "ProductTests",
+    "platforms": [ "electron" ],
+    "pool": "default",
+    "tests": [
+        {
+            "name": "TestScen",
+            "binary":"product_unittest.bin",
+            "scenario": "testscen.js",
+            "expectations": [
+                "PassTest"
+            ]
+        },
+        {
+            "name": "FailScen",
+            "binary": "dne.bin",
+            "scenario": "failscen.js",
+            "expectations": [
+                "FailScen"
+            ]
+        }
+    ]
+}

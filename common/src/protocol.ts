@@ -48,5 +48,6 @@ export enum AdapterChannels {
 
 export enum SystemChannels {
 	STORAGE = "storage",
-	RELEASESTORAGE = "releasestorage"
+	RELEASESTORAGE = "releasestorage",
+	QUERY = "query"
 };

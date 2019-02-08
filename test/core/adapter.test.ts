@@ -40,7 +40,7 @@ test('Adapter STORAGEREADY fires loadJob', done => {
 
 	let config = {"test": "test" };
 	let store = new TmpStorage();
-	writeFileSync(store.path + "/tests.json", JSON.stringify(config));
+	writeFileSync(store.path + "/test.json", JSON.stringify(config));
 	transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, adapter.id, store);
 	while(!test_listener.called) {transport.processAll();}
 });

@@ -44,9 +44,10 @@ export class Adapter extends UniqueID implements TransportClient
         // Find tests.json
         // Crack into TestComponents
         // Send job message
-        let config = JSON.parse(readFileSync(store.path + "/tests.json", 'UTF-8'));
+        let config = JSON.parse(readFileSync(store.path + "/test.json", 'UTF-8'));
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
+        config["store_id"] = store.id;
         //config defines the tests
         this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
     };

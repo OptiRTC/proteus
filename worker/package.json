@@ -4,7 +4,7 @@
   "description": "Proteus Worker",
   "main": "index.js",
   "scripts": {
-    "test": "npx jest"
+    "test": "npx jest --runInBand"
   },
   "repository": {
     "type": "git",

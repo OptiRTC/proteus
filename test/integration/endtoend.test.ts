@@ -1,27 +1,45 @@
-import { Message, MessageTransport, TransportClient } from 'common/messagetransport';
-import { Partitions, WorkerChannels, TaskChannels } from 'common/protocol';
-import { TestComponent } from "common/testcomponents";
+import { MessageTransport } from 'common/messagetransport';
 import { Adapter } from "core/adapter";
 import { ProteusCore } from "core/proteuscore";
 import { WorkerClient } from 'worker/workerclient';
+import { TmpStorage } from 'common/storage';
+import { TestCaseResults } from 'common/result';
+import { WorkerState } from 'common/worker';
 
-test('adapter-to-worker', done => {
+test('adapter-to-workerclient', done => {
+    class TestAdapter extends Adapter
+    {
+        public done:boolean;
+        constructor(transport:MessageTransport, name:string)
+        {
+            super(transport, name);
+            this.done = false;
+        };
 
-});
+        public loadJob(store:TmpStorage)
+        {
+            store.copyFrom('./integration/store').then(() => super.loadJob(store));
+        };
 
-test('abort-test', done => {
-    //ensure both worker and core abort the test
-    //discard any results from aborted tests
-    //ensure aborted worker idles
-    //ensure aborted test reported to adapter
-});
-
-test('job queue', done => {
-    // fill job queues across several pools
-    // ensure queues drain correctly
-});
-
-test('offline workers', done => {
-    // ensure offline workers aren't tasked
-    // retask non-aborted jobs to online workers?
-});
+        public handleResults(results:TestCaseResults[])
+        {
+            core.close();
+            expect(results.length).toBe(1);
+            expect(results[0].passing.length).toBe(4);
+            expect(worker.state).toEqual(WorkerState.IDLE);
+            clearInterval(interval);
+            done();
+        };
+    };
+    let transport = new MessageTransport();
+    let worker = new WorkerClient(transport);
+    let adapter = new TestAdapter(transport, 'test');
+    let core = new ProteusCore(transport);
+    core.registerAdapter(adapter);
+    transport.processAll();
+    adapter.startJob();
+    let interval = setInterval(() => {
+        transport.process();
+        core.process();
+    }, 100);
+}, 30000);

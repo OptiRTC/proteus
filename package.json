@@ -10,7 +10,7 @@
   "scripts": {
     "build-worker": "cd worker; tsc -b; cd ..; webpack --config worker.webpack.config.js",
     "build-core": "cd core; tsc -b; cd ..; webpack --config core.webpack.config.js",
-    "test": "cd test; tsc -b; npx jest; cd .."
+    "test": "cd test; tsc -b; npx jest --runInBand --detectOpenHandles; cd .."
   },
   "repository": {
     "type": "git",

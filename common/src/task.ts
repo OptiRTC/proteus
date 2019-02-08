@@ -36,7 +36,7 @@ export class Task extends UniqueID implements Transportable
         {
             let abort_res = new Result();
             abort_res.name = expected;
-            abort_res.classname = this.test.binary;
+            abort_res.classname = this.test.scenario;
             abort_res.status = TestStatus.FAILED;
             abort_res.assertions = 1;
             abort_res.finished = new Date().getTime();
@@ -56,7 +56,7 @@ export class Task extends UniqueID implements Transportable
                 worker_id: 'N/A',
                 passed: [],
                 failed: results,
-                task: this.toJSON()}));
+                task: this}).toJSON());
     };
 
     public toJSON():any

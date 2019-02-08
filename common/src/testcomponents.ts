@@ -4,7 +4,6 @@ import { Transportable } from 'common/messagetransport';
 export class TestComponent implements Transportable {
     
         public name:string; // Friendly name
-        public binary:string; // The binary under test
         public scenario:string; // The scenario file to load (may be null for uint tests)
         public expectations:string[]; // A list of expectations (may be null for scenarios)
 
@@ -15,7 +14,6 @@ export class TestComponent implements Transportable {
             this.fromJSON(content);
         } else {
             this.name = null;
-            this.binary = null;
             this.scenario = null;
             this.expectations = [];
         }
@@ -34,7 +32,6 @@ export class TestComponent implements Transportable {
         // No nested classes
         return {
             name: this.name,
-            binary: this.binary,
             scenario: this.scenario,
             expectations: this.expectations
         };
@@ -43,7 +40,6 @@ export class TestComponent implements Transportable {
     public fromJSON(content:any): TestComponent
     {
         this.name = typeof(content.name) == 'undefined' ? "NAMEERROR": content.name;
-        this.binary = typeof(content.binary) == 'undefined' ? "NAMEERROR" : content.binary;
         this.scenario = typeof(content.scenario) == 'undefined' ? "NAMEERROR" : content.scenario;
         this.expectations = typeof(content.expectations) == 'undefined' ? [] : content.expectations;
         return this;

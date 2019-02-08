@@ -3,7 +3,6 @@ import { watch, FSWatcher, readFileSync, writeFileSync } from 'fs';
 import { MessageTransport } from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { TmpStorage } from "common/storage";
-import { ncp } from 'ncp';
 import { Partitions, SystemChannels } from "common/protocol";
 
 export class FileChangeAdapter extends Adapter
@@ -45,8 +44,6 @@ export class FileChangeAdapter extends Adapter
 
     public loadJob(store:TmpStorage)
     {
-        ncp(this.buildpath, store.path, () => {
-            super.loadJob(store);
-        });
+        store.copyFrom(this.buildpath).then(() => super.loadJob(store));
     };
 };

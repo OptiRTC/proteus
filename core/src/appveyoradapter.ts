@@ -2,12 +2,13 @@ import { Adapter } from "core/adapter";
 import {MessageTransport} from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
-import { request, IncomingMessage } from "http";
 import { TmpStorage } from "common/storage";
 import { Partitions, SystemChannels } from "common/protocol";
-import { Extract } from "unzip";
 import { getJunitXml } from 'junit-xml';
 import { Readable } from "stream";
+import AdmZip from 'adm-zip';
+import { request } from 'request';
+import { writeFileSync } from 'fs';
 
 export class AppveyorAdapter extends Adapter
 {
@@ -101,61 +102,50 @@ export class AppveyorAdapter extends Adapter
         stream._read = () => {};
         stream.push(junitXml);
         let options = this.appveyorOptions(this.urlmap[results[0].task.build]);
-        options['method'] = "POST";
+        
         options['formData'] = {
             file: stream
-        }
-        request(options, (res:IncomingMessage) => {
-            if(res.statusCode >= 200 &&
-                res.statusCode < 300)
-                {
-                    console.log("Upload Error");
-                }
-        });
-        
+        };
+
+        request.post(options);
     };
 
     public appveyorOptions(path:string)
     {
         return {
-            hostname: "ci.appveyor.com",
-            port: 443,
-            path: path,
+            url: "https://ci.appveyor.com/" + path,
             headers: {
-                Authorization: 'Bearer ' + this.token
+                'Authorization': 'Bearer ' + this.token
             }
         };
     };
 
-    public appveyorGet(path:string, callback:any)
+    public appveyorGet(path:string): Promise<any>
     {
-        request(this.appveyorOptions(path), (res:IncomingMessage) => {
-            let buffer = "";
-            res.on('data', (chunk)=> {
-                buffer += chunk;
-            });
-            res.on('end', () => {
-                callback(buffer)
+        return new Promise((resolve, reject) => {
+            request(this.appveyorOptions(path), (err, res, body) => {
+                if (!err && res.statusCode == 200)
+                {
+                    resolve(body);
+                } else {
+                    reject();
+                }
             });
         });
     };
 
     public loadJob(store:TmpStorage)
     {
-        this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts", (buffer) => {
+        this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts").then((buffer) => {
             let artifacts = JSON.parse(buffer);
-            
-            let options = {
-                hostname: "ci.appveyor.com",
-                port: 443,
-                path: "api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts/" + artifacts[0]["fileName"],
-                headers: {
-                    Authorization: 'Bearer ' + this.token
-                }
-            };
             this.urlmap[this.build] = "api/testresults/junit/" + this.buildinfo["build"]["jobs"][0]["jobId"];
-            request(options).pipe(Extract({path: store.path}));
-            super.loadJob(store);
+            this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts/" + artifacts[0]["fileName"]).then((body) => {
+                let targetFile = "/tmp/" + this.buildinfo["build"]["jobs"][0]["jobId"] + ".zip";
+                writeFileSync(targetFile, body, 'binary');
+                let zip = new AdmZip(targetFile);
+                zip.extractAllTo(store.path, true);
+                super.loadJob(store);
+            });
         });
     };
 
@@ -178,7 +168,7 @@ export class AppveyorAdapter extends Adapter
     {
         if ((new Date().getTime() - this.poll_timer) > this.poll_interval)
         {
-            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug, (buf) => this.parseBuild(buf));
+            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug).then((buf) => this.parseBuild(buf));
         }
     };
 };

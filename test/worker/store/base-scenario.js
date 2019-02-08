@@ -1,11 +1,9 @@
-const config = require('config');
-
 class BaseScenario {
     constructor()
     {
         this.name = "Scenario";
         
-        this.DEFAULT_TIMEOUT = config.get('Worker.timeout');
+        this.DEFAULT_TIMEOUT_MS = 30000;
         this.timeout = null;
         this.root_promise = null;
         this.root_start = null;
@@ -26,7 +24,7 @@ class BaseScenario {
     run()
     {
         return new Promise((resolve, reject) => {
-            this.timeout = setTimeout(() => reject(), this.DEFAULT_TIMEOUT);
+            this.timeout = setTimeout(() => reject("Test Timed out (" + (this.DEFAULT_TIMEOUT_MS / 1000) + ")"), this.DEFAULT_TIMEOUT_MS);
             this.pass = resolve;
             this.fail = reject;
             this.root_start(); // resolves the root promise and starts the chain
@@ -65,8 +63,6 @@ class BaseScenario {
         clearTimeout(this.timeout);
         this.pass(this.results);
     }
-
-
 };
 
-exports.default = BaseScenario;
+exports.BaseScenario = BaseScenario;

@@ -6,6 +6,7 @@ defaultTest.first().then(() =>
 defaultTest.setPower(true)).then(() =>
 defaultTest.getMessage("Test Starting")).then(() =>
 defaultTest.getState({ propertyname: 0})).then(() =>
-defaultTest.pass());
+defaultTest.passTest("BasicTest")).then(() => 
+defaultTest.end());
 
 exports.default = defaultTest;
