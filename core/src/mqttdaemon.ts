@@ -1,5 +1,7 @@
 import { ProteusCore } from "core/proteuscore";
 import { MQTTTransport } from "common/mqtttransport";
+import { FileChangeAdapter } from "core/filechangeadapter";
+import { AppveyorAdapter } from "core/appveyoradapter";
 
 export class MQTTDaemon
 {
@@ -10,6 +12,9 @@ export class MQTTDaemon
     {
         this.mqtt = new MQTTTransport(mqtt_ip);
         this.core = new ProteusCore(this.mqtt);
+        this.core.registerAdapter(new FileChangeAdapter(this.mqtt, '/tmp/proteus/job', '/tmp/proteus/result'));
+        this.core.registerAdapter(new AppveyorAdapter(this.mqtt));
+    
         this.active = true;
         process.on('SIGTERM', () => {
             this.active = false;

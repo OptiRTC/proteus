@@ -7,7 +7,7 @@ import { Partitions, SystemChannels } from "common/protocol";
 import { getJunitXml } from 'junit-xml';
 import { Readable } from "stream";
 import AdmZip from 'adm-zip';
-import { request } from 'request';
+import request from 'request';
 import { writeFileSync } from 'fs';
 
 export class AppveyorAdapter extends Adapter
@@ -128,7 +128,7 @@ export class AppveyorAdapter extends Adapter
                 {
                     resolve(body);
                 } else {
-                    reject();
+                    reject(err);
                 }
             });
         });

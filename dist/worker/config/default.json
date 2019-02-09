@@ -1,6 +1,9 @@
 {
-    "Core": {
-        "Server": "mqtt://proteus.localdomain"
+    "Core" : {
+        "MessageServer": "mqtt://proteus.localdomain",
+        "MessagePort": 1883,
+        "FileServer": "proteus.localdomain",
+        "FilePort": 3000
     },
     "Worker": {
         "id": "TestWorker",
@@ -8,9 +11,5 @@
         "pool": "default",
         "platform": "test",
         "heartbeat": 120
-    },
-    "Serial": {
-        "port": "/dev/ttyACM0",
-        "dfuPort": "/dev/ttyACM0"
     }
 }

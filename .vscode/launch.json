@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "Debug Jest",
+        "name": "Unit Tests",
         "type": "node",
         "request": "launch",
         "cwd": "${workspaceFolder}/test",
@@ -14,6 +14,22 @@
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen",
         "port": 9229
+      },
+      {
+        "name": "Integration Tests",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/test",
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/test/node_modules/.bin/jest",
+          "--runInBand",
+          "integration"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
       }
+    
     ]
   }
