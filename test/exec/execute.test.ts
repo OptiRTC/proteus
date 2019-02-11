@@ -26,5 +26,5 @@ test("MQTT + Appveyor + Local FS", done => {
     core.registerAdapter(fsadapter);
     core.registerAdapter(avadapter);
    
-    let interval = setInterval(() => core.process(), 10);
+    let interval = setInterval(() => core.process(), 100);
 }, 60000);

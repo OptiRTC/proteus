@@ -3,10 +3,10 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "AccountName",
-        "Project": "ProjectName",
-        "Token": "API Token",
-        "PollInterval": 300
+        "Account": "OptiRTC",
+        "Project": "thunder",
+        "Token": "v2.wn9katdd52wcodyud51o",
+        "PollIntervalSec": 300
     },
     "Core" : {
         "MessageServer": "mqtt://proteus.localdomain",

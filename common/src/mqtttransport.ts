@@ -10,18 +10,14 @@ export class MQTTTransport extends MessageTransport
     constructor(server:string)
     {
         super();
-        this.message_regex = new RegExp('/(.*)/(.*)/(.*)')
         this.client = connect(server);
         this.client.on('message', this.parseMessage);
-        for(let channel in Partitions)
-        {
-            this.client.subscribe(channel);
-        }
+        this.client.subscribe('#');
     };
 
     protected parseMessage(topic:string, content)
     {
-        let parts = this.message_regex.exec(topic);
+        let parts = /\/(.*)\/(.*)\/(.*)/.exec(topic);
         super.recieveMessage(<Partitions>parts[1], parts[2], parts[3], JSON.parse(content));
     };
 
@@ -33,5 +29,6 @@ export class MQTTTransport extends MessageTransport
         }
         let topic = "/" + partition + "/" + channel + "/" + address;
         this.client.publish(topic, JSON.stringify(content));
+        super.recieveMessage(partition, channel, address, content);
     };
 };

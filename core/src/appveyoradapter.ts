@@ -29,8 +29,8 @@ export class AppveyorAdapter extends Adapter
         this.account_name = get('Appveyor.Account');
         this.project_slug = get ('Appveyor.Project');
         this.token = get('Appveyor.Token');
-        this.poll_interval = get('Appveyor.PollInterval')
-        this.poll_timer = new Date().getTime();
+        this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
+        this.poll_timer = 0;
         this.urlmap = new Map<string,string>();
     };
 
@@ -116,7 +116,8 @@ export class AppveyorAdapter extends Adapter
             url: "https://ci.appveyor.com/" + path,
             headers: {
                 'Authorization': 'Bearer ' + this.token
-            }
+            },
+            encoding: null
         };
     };
 
@@ -124,7 +125,9 @@ export class AppveyorAdapter extends Adapter
     {
         return new Promise((resolve, reject) => {
             request(this.appveyorOptions(path), (err, res, body) => {
-                if (!err && res.statusCode == 200)
+                if (!err &&
+                    res.statusCode >= 200 &&
+                    res.statusCode < 300)
                 {
                     resolve(body);
                 } else {
@@ -136,16 +139,22 @@ export class AppveyorAdapter extends Adapter
 
     public loadJob(store:TmpStorage)
     {
-        this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts").then((buffer) => {
+        this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts").then((buffer) =>
+        {
             let artifacts = JSON.parse(buffer);
             this.urlmap[this.build] = "api/testresults/junit/" + this.buildinfo["build"]["jobs"][0]["jobId"];
-            this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts/" + artifacts[0]["fileName"]).then((body) => {
+            this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts/" + artifacts[0]["fileName"]).then((body) => 
+            {
                 let targetFile = "/tmp/" + this.buildinfo["build"]["jobs"][0]["jobId"] + ".zip";
-                writeFileSync(targetFile, body, 'binary');
+                writeFileSync(targetFile, body);
                 let zip = new AdmZip(targetFile);
                 zip.extractAllTo(store.path, true);
                 super.loadJob(store);
+            }).catch((e) => {
+                console.log(e);
             });
+        }).catch((e) => {
+            console.log(e);
         });
     };
 
@@ -153,7 +162,7 @@ export class AppveyorAdapter extends Adapter
     {
         this.buildinfo = JSON.parse(buffer);
         if (this.build != this.buildinfo["build"]["version"] &&
-            this.build["jobs"][0]["artifactsCount"] > 0)
+            this.buildinfo["build"]["jobs"][0]["artifactsCount"] > 0)
         {
             this.build = this.buildinfo["build"]["version"];
             this.transport.sendMessage(
@@ -168,7 +177,13 @@ export class AppveyorAdapter extends Adapter
     {
         if ((new Date().getTime() - this.poll_timer) > this.poll_interval)
         {
-            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug).then((buf) => this.parseBuild(buf));
+            this.poll_timer = new Date().getTime();
+            this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug)
+            .then((buf) => {
+                this.parseBuild(buf);
+            }).catch((e) => {
+                console.log(e);
+            });
         }
     };
 };

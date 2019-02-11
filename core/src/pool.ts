@@ -40,7 +40,7 @@ export class Pool implements TransportClient
         this.active_tasks = [];
         this.workers = [];
         this.query_timer = new Date().getTime();
-        this.query_interval = 180;
+        this.query_interval = 180000;
     };
 
     public onMessage(message:Message)
@@ -125,7 +125,7 @@ export class Pool implements TransportClient
                 this.id,
                 message.content.platform,
                 this.transport,
-                180));
+                180000));
         }
 
         this.transport.sendMessage(
