@@ -12,6 +12,7 @@ class BaseScenario {
         this.fail = null;
         this.line_callback = null;
         this.results = [];
+        this.metadata = {};
     }
 
     first()
@@ -21,8 +22,9 @@ class BaseScenario {
     }
     
     // Must Implement, returns Execution Promise
-    run()
+    run(metadata)
     {
+        this.metadata = metadata;
         return new Promise((resolve, reject) => {
             this.timeout = setTimeout(() => reject("Test Timed out (" + (this.DEFAULT_TIMEOUT_MS / 1000) + ")"), this.DEFAULT_TIMEOUT_MS);
             this.pass = resolve;

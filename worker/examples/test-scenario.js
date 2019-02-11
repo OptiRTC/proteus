@@ -5,7 +5,7 @@ const defaultTest = new BaseScenario();
 defaultTest.first().then(() =>
 defaultTest.setPower(true)).then(() =>
 defaultTest.getMessage("Test Starting")).then(() =>
-defaultTest.getState({ propertyname: 0})).then(() =>
+defaultTest.getState({ propertyname: defaultTest.metadata.propertyname})).then(() =>
 defaultTest.passTest("BasicTest")).then(() => 
 defaultTest.end());
 

@@ -116,7 +116,7 @@ export class WorkerClient extends Worker
                 // Scenarios are a promise chain
                 let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
                 let scenario = require(scenario_file).scenario;
-                scenario.run().then((results) => {
+                scenario.run(test.metadata).then((results) => {
                     results = results.map((item) => new Result(item));
                     resolve(new TestCaseResults({
                         worker_id: get('Worker.id'),

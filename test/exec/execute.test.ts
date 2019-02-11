@@ -5,6 +5,7 @@ import { FileChangeAdapter } from 'core/filechangeadapter';
 import { AppveyorAdapter } from 'core/appveyoradapter';
 import { Partitions, TaskChannels } from 'common/protocol';
 import { get } from 'config';
+import { mkdirSync } from 'fs';
 
 test("MQTT + Appveyor + Local FS", done => {
     class TestListener implements TransportClient {
@@ -19,7 +20,8 @@ test("MQTT + Appveyor + Local FS", done => {
     let core = new ProteusCore(mqtt);
     let listener = new TestListener();
     mqtt.subscribe(listener, Partitions.TASKS, TaskChannels.RESULT, null);
-     
+    mkdirSync('/tmp/proteus/job', { recursive: true});
+    mkdirSync('/tmp/proteus/result', { recursive: true});
     let fsadapter = new FileChangeAdapter(mqtt, '/tmp/proteus/job', '/tmp/proteus/result');
     let avadapter = new AppveyorAdapter(mqtt);
 
