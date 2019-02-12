@@ -18,13 +18,11 @@ export class MQTTClient
 
     public run()
     {
-        // Event driven, we don't need to poll, just stay alive for MQTT
-        setInterval(() => 
+        
+        this.mqtt.process();
+        if (this.active)
         {
-            if (!this.active)
-            {
-                process.exit(0);
-            }
-        });
+            setImmediate(() => this.run());
+        }
     };
 };

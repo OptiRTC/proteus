@@ -20,12 +20,7 @@
     "@types/adm-zip": "^0.4.32",
     "@types/config": "0.0.34",
     "@types/node": "^10.12.18",
-    "@types/onoff": "^3.2.1",
-    "@types/serialport": "^7.0.1",
     "adm-zip": "^0.4.13",
-    "config": "^3.0.1",
-    "onoff": "^3.2.2",
-    "serialport": "^7.1.4",
-    "typescript": "^3.2.4"
+    "config": "^3.0.1"
   }
 }

@@ -7,46 +7,22 @@
     "example": "examples"
   },
   "dependencies": {
-    "fs": "^0.0.1-security",
-    "ts-node": "^8.0.2"
+    "fs": "^0.0.1-security"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.4.32",
-    "@types/archiver": "^2.1.2",
+    "@types/chokidar": "^1.7.5",
     "@types/config": "0.0.34",
-    "@types/express": "^4.16.1",
-    "@types/jest": "^23.3.13",
     "@types/ncp": "^2.0.1",
     "@types/node": "^10.12.18",
-    "@types/tar": "^4.0.0",
-    "@types/tar-stream": "^1.6.0",
-    "@types/tmp": "0.0.33",
-    "@types/unzip": "^0.1.1",
+    "@types/request": "^2.48.1",
     "adm-zip": "^0.4.13",
-    "archiver": "^3.0.0",
     "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
-    "babel-preset-es2018": "^1.0.0",
+    "chokidar": "^2.1.1",
     "config": "^3.0.1",
-    "express": "^4.16.4",
-    "fstream": "^1.0.11",
-    "http": "0.0.0",
-    "jest": "^23.6.0",
     "junit-xml": "^1.0.0",
-    "mqtt": "^2.18.8",
     "ncp": "^2.0.0",
-    "serve-static": "^1.13.2",
-    "tar": "^4.4.8",
-    "tar-stream": "^2.0.0",
-    "tmp": "0.0.33",
-    "ts-jest": "^23.10.5",
-    "typescript": "^3.2.4",
-    "unzip": "^0.1.11",
-    "zlib": "^1.0.5"
-  },
-  "scripts": {
-    "test": "jest",
-    "start": "babel-node --presets es2018 bin/core/src/execute.js"
+    "request": "^2.88.0"
   },
   "repository": {
     "type": "git",

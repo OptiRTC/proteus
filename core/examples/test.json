@@ -1,5 +1,6 @@
 {
     "name": "ProductTests",
+    "build": "test-0.0.1",
     "platforms": [ "electron", "photon"],
     "pool": "product_dev",
     "tests": [

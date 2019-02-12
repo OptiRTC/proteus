@@ -30,8 +30,8 @@ test('changed file triggers STORAGE request', done => {
 		resultstore.path);
 
 	// Create a file
-	setTimeout(() => writeFileSync(buildstore.path + "/tests.json", '{"build":"test"}'), 1000);
+	setTimeout(() => writeFileSync(buildstore.path + "/test.json", '{"build":"test"}'), 1000);
 	setInterval(() => {
 		transport.processAll();
 	}, 100);
-});
+}, 20000);

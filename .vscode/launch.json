@@ -31,16 +31,39 @@
         "port": 9229
       },
       {
-        "name": "Exec",
+        "name": "Core",
         "type": "node",
         "request": "launch",
-        "cwd": "${workspaceFolder}/test",
+        "cwd": "${workspaceFolder}",
+        "args": ["core/src/execute.ts"],
         "runtimeArgs": [
           "--inspect-brk",
-          "${workspaceFolder}/test/node_modules/.bin/jest",
-          "--runInBand",
-          "exec"
+          "--nolazy",
+          "-r",
+          "ts-node/register",
+          "-r",
+          "tsconfig-paths/register"
         ],
+        "protocol": "inspector",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Worker",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "args": ["worker/src/execute.ts"],
+        "runtimeArgs": [
+          "--inspect-brk",
+          "--nolazy",
+          "-r",
+          "ts-node/register",
+          "-r",
+          "tsconfig-paths/register"
+        ],
+        "protocol": "inspector",
         "console": "integratedTerminal",
         "internalConsoleOptions": "neverOpen",
         "port": 9229

@@ -11,7 +11,7 @@ export class MQTTTransport extends MessageTransport
     {
         super();
         this.client = connect(server);
-        this.client.on('message', this.parseMessage);
+        this.client.on('message', (t, p, pk) => this.parseMessage(t, p));
         this.client.subscribe('#');
     };
 
@@ -29,6 +29,5 @@ export class MQTTTransport extends MessageTransport
         }
         let topic = "/" + partition + "/" + channel + "/" + address;
         this.client.publish(topic, JSON.stringify(content));
-        super.recieveMessage(partition, channel, address, content);
     };
 };

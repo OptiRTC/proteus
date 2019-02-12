@@ -5,7 +5,7 @@ import { get } from 'config';
 import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
 import { Task } from 'common/task';
-import { TmpStorage } from 'common/storage';
+import { Storage } from 'common/storage';
 import { relative }  from 'path';
 import request from 'request';
 import AdmZip from 'adm-zip';
@@ -13,8 +13,9 @@ import fs from 'fs';
 
 export class WorkerClient extends Worker
 {
-    public local_storage:TmpStorage;
+    public local_storage:Storage;
     public task:Task;
+    public config_interval:NodeJS.Timeout;
 
     constructor(transport:MessageTransport)
     {
@@ -26,7 +27,7 @@ export class WorkerClient extends Worker
             get("Worker.timeout"));
         this.task = null;
         this.local_storage = null;
-        this.sendDiscovery();
+        this.config_interval = setInterval(() => this.sendDiscovery(), 15000);
         setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
 
@@ -38,6 +39,7 @@ export class WorkerClient extends Worker
                 this.sendStatus();
                 break;
             case WorkerChannels.TASK:
+                console.log("Starting Task", message.content);
                 this.state = WorkerState.BUSY;
                 this.sendStatus();
                 let res:TestCaseResults = null;
@@ -64,6 +66,7 @@ export class WorkerClient extends Worker
                             ]
                         });
                     }).finally(() => {
+                        console.log("Task Finished", this.task.id);
                         this.transport.sendMessage(
                             Partitions.TASKS,
                             TaskChannels.RESULT,
@@ -74,6 +77,10 @@ export class WorkerClient extends Worker
                     }));
                 break;
             case WorkerChannels.CONFIG:
+                console.log("Discovery Finished");
+                this.pool_id = (message.content["pool_id"] || this.pool_id);
+                clearInterval(this.config_interval);
+                this.config_interval = null;
                 break;
             default:
                 break;
@@ -82,6 +89,7 @@ export class WorkerClient extends Worker
 
     public sendDiscovery()
     {
+        console.log("Starting Discovery");
         this.transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.DISCOVER,
@@ -153,7 +161,7 @@ export class WorkerClient extends Worker
                 return;
             }
             let storeUrl = "http://" + get('Core.FileServer') + ":" + get('Core.FilePort') + "/" + this.task.storage_id;
-            this.local_storage = new TmpStorage();
+            this.local_storage = new Storage();
             request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
                 if (err != null ||
                     res.statusCode != 200)

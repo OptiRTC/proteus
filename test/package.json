@@ -9,20 +9,13 @@
   },
   "devDependencies": {
     "@types/adm-zip": "^0.4.32",
+    "@types/config": "0.0.34",
     "@types/jest": "^23.3.14",
-    "@types/ncp": "^2.0.1",
     "@types/node": "^10.12.18",
-    "@types/serialport": "^7.0.1",
-    "@types/unzip": "^0.1.1",
-    "@types/yauzl": "^2.9.1",
     "adm-zip": "^0.4.13",
     "config": "^3.0.1",
     "jest": "^23.6.0",
-    "ncp": "^2.0.0",
-    "serialport": "^7.1.4",
-    "ts-jest": "^23.10.5",
-    "unzip": "^0.1.11",
-    "yauzl": "^2.10.0"
+    "ts-jest": "^23.10.5"
   },
   "scripts": {
     "test": "npx jest"

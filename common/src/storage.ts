@@ -1,7 +1,7 @@
-import {dirSync, SynchrounousResult} from 'tmp';
-import { ncp } from 'ncp';
 
-export class TmpStorage
+import {dirSync, SynchrounousResult} from 'tmp';
+
+export class Storage
 {
 	public obj:SynchrounousResult;
 	public id:string;
@@ -17,36 +17,8 @@ export class TmpStorage
 		return this.obj.name;
 	}
 
-	finish()
+	public finish()
 	{
 		this.obj.removeCallback();
 	}
-
-	public copyFrom(source:string): Promise<void>
-    {
-        return new Promise<void>((resolve, reject) => {
-           ncp(source, this.path, (err) => {
-				if (!err)
-				{
-					resolve();
-				} else {
-					reject(err);
-				}
-			});
-        });
-    }
-
-	public copyTo(dest:string): Promise<void>
-    {
-        return new Promise<void>((resolve, reject) => {
-           ncp(this.path, dest, (err) => {
-				if (!err)
-				{
-					resolve();
-				} else {
-					reject(err);
-				}
-			});
-        });
-    }
 };

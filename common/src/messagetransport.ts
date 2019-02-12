@@ -91,9 +91,9 @@ export class MessageTransport
         for(let sub of this.subscriptions)
         {
             if (sub.reciever == reciever &&
-                sub.partition == partition &&
-                sub.channel == channel &&
-                sub.address == address)
+                sub.partition === partition &&
+                sub.channel === channel &&
+                sub.address === address)
             {
                 this.subscriptions.slice(this.subscriptions.indexOf(sub), 1);
                 break;
@@ -107,13 +107,13 @@ export class MessageTransport
         {
             if ((sub.partition == null ||
                  message.partition == null ||
-                 sub.partition == message.partition) &&
+                 sub.partition === message.partition) &&
                 (sub.channel == null ||
                  message.channel == null ||
-                 sub.channel == message.channel) &&
+                 sub.channel === message.channel) &&
                 (sub.address == null ||
                  message.address == null ||
-                 sub.address == message.address))
+                 sub.address === message.address))
             {
                 sub.reciever.onMessage(message);
             }

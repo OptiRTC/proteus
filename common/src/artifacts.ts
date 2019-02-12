@@ -1,4 +1,4 @@
-import { TmpStorage } from 'common/storage';
+import { Storage } from 'common/storage';
 import express from 'express';
 import { Server } from "http";
 import archiver from 'archiver';
@@ -9,7 +9,7 @@ import { Partitions, SystemChannels, AdapterChannels } from 'common/protocol';
 export class Artifacts implements TransportClient
 {
 
-    protected stores:TmpStorage[];
+    protected stores:Storage[];
     public file_access:Server;
     constructor(public transport:MessageTransport)
     {
@@ -34,12 +34,12 @@ export class Artifacts implements TransportClient
 
     public newStorage():string
     {
-        let store = new TmpStorage();
+        let store = new Storage();
         this.stores.push(store);
         return store.id;
     }
 
-    public getStore(store_id:string):TmpStorage
+    public getStore(store_id:string):Storage
     {
         let index = this.stores.findIndex((s) => s.id == store_id);
         if (index != -1)
@@ -54,13 +54,16 @@ export class Artifacts implements TransportClient
         switch(message.channel)
         {
             case SystemChannels.STORAGE:
-                let store = new TmpStorage();
+                let store = new Storage();
                 this.stores.push(store);
                 this.transport.sendMessage(
                     Partitions.ADAPTER,
                     AdapterChannels.STORAGEREADY,
                     message.address,
-                    store);
+                    {
+                        storage_path: store.path,
+                        storage_id: store.id
+                    });
                 break;
             case SystemChannels.RELEASESTORAGE:
                 let index = this.stores.findIndex((s) => s.id == message.content);

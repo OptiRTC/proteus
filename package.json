@@ -8,9 +8,12 @@
     "test": "test"
   },
   "scripts": {
+    "postinstall": "cd common; npm i; cd ..; cd core; npm i; cd ..; cd worker; npm i; cd ..",
     "build-worker": "cd worker; tsc -b; cd ..; webpack --config worker.webpack.config.js",
     "build-core": "cd core; tsc -b; cd ..; webpack --config core.webpack.config.js",
-    "test": "cd test; tsc -b; npx jest --runInBand --detectOpenHandles; cd .."
+    "test": "cd test; tsc -b; npx jest --runInBand --detectOpenHandles; cd ..",
+    "core": "ts-node -r tsconfig-paths/register core/src/execute.ts",
+    "worker": "ts-node -r tsconfig-paths/register worker/src/execute.ts"
   },
   "repository": {
     "type": "git",
@@ -24,11 +27,12 @@
   "homepage": "https://github.com/OptiRTC/proteus#readme",
   "devDependencies": {
     "shebang-loader": "0.0.1",
+    "ts-node": "^8.0.2",
+    "tsconfig-paths": "^3.8.0",
+    "typescript": "^3.3.3",
     "webpack": "^4.29.0",
     "webpack-cli": "^3.2.1"
   },
   "dependencies": {
-    "node-gyp": "^3.8.0",
-    "serialport": "^7.1.4"
   }
 }

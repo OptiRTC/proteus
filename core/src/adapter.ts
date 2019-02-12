@@ -2,7 +2,6 @@ import { MessageTransport, TransportClient, Message } from "common/messagetransp
 import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "common/protocol";
 import { UniqueID } from "common/uniqueid";
 import {readFileSync} from "fs";
-import { TmpStorage } from "common/storage";
 import { TestCaseResults } from "common/result";
 
 export class Adapter extends UniqueID implements TransportClient
@@ -34,7 +33,7 @@ export class Adapter extends UniqueID implements TransportClient
             null);
     };
 
-    public loadJob(store:TmpStorage)
+    public loadJob(storage_path:string, storage_id:string)
     {
         // We expect when loadJob is called tests.json
         // and all binaries are extracted into
@@ -44,10 +43,11 @@ export class Adapter extends UniqueID implements TransportClient
         // Find tests.json
         // Crack into TestComponents
         // Send job message
-        let config = JSON.parse(readFileSync(store.path + "/test.json", 'UTF-8'));
+        let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
-        config["store_id"] = store.id;
+        config["store_id"] = storage_id;
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
         //config defines the tests
         this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
     };
@@ -57,7 +57,7 @@ export class Adapter extends UniqueID implements TransportClient
         switch(message.channel)
         {
             case AdapterChannels.STORAGEREADY:
-                this.loadJob(message.content);
+                this.loadJob(message.content["storage_path"], message.content["storage_id"]);
                 break;
 
             case AdapterChannels.RESULT:

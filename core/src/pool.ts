@@ -109,7 +109,7 @@ export class Pool implements TransportClient
 
     public discoverWorker(message:Message)
     {
-        let selected_worker = null;
+        let selected_worker:Worker = null;
         for (let worker of this.workers)
         {
             if (worker.id == message.address)
@@ -118,20 +118,21 @@ export class Pool implements TransportClient
                 break;
             }
         }
-        if (selected_worker == null)
+        if (!selected_worker)
         {
-            selected_worker = this.addWorker(new Worker(
+            selected_worker = new Worker(
                 message.address,
                 this.id,
                 message.content.platform,
                 this.transport,
-                180000));
+                180000);
+            this.addWorker(selected_worker);
         }
 
         this.transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.CONFIG,
-            this.id,
+            selected_worker.id,
             {
                 "pool_id": this.id
             });

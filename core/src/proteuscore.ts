@@ -1,7 +1,7 @@
 import {Job} from "core/job";
 import {Pool} from "core/pool";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON} from 'common/messagetransport';
-import {Partitions, WorkerChannels, JobChannels} from 'common/protocol';
+import {Partitions, WorkerChannels, JobChannels, SystemChannels} from 'common/protocol';
 import {Platforms} from "common/platforms";
 import {TestComponent} from "common/testcomponents";
 import { Adapter } from "core/adapter";
@@ -28,6 +28,7 @@ export class ProteusCore implements TransportClient
         this.adapters = [];
         this.artifacts = new Artifacts(transport);
         this.createPool("default");
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {status: "Core Up"});
     };
 
     public onMessage(message:Message)

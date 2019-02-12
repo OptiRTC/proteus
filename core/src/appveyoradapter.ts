@@ -2,7 +2,6 @@ import { Adapter } from "core/adapter";
 import {MessageTransport} from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
-import { TmpStorage } from "common/storage";
 import { Partitions, SystemChannels } from "common/protocol";
 import { getJunitXml } from 'junit-xml';
 import { Readable } from "stream";
@@ -25,12 +24,12 @@ export class AppveyorAdapter extends Adapter
         transport:MessageTransport)
     {
         super(transport, "Appveyor");
-        this.build = "0.0.0-0";
+        this.build = null;
         this.account_name = get('Appveyor.Account');
         this.project_slug = get ('Appveyor.Project');
         this.token = get('Appveyor.Token');
         this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
-        this.poll_timer = 0;
+        this.poll_timer = new Date().getTime();
         this.urlmap = new Map<string,string>();
     };
 
@@ -137,7 +136,7 @@ export class AppveyorAdapter extends Adapter
         });
     };
 
-    public loadJob(store:TmpStorage)
+    public loadJob(storage_path:string, storage_id:string)
     {
         this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts").then((buffer) =>
         {
@@ -148,8 +147,8 @@ export class AppveyorAdapter extends Adapter
                 let targetFile = "/tmp/" + this.buildinfo["build"]["jobs"][0]["jobId"] + ".zip";
                 writeFileSync(targetFile, body);
                 let zip = new AdmZip(targetFile);
-                zip.extractAllTo(store.path, true);
-                super.loadJob(store);
+                zip.extractAllTo(storage_path, true);
+                super.loadJob(storage_path, storage_id);
             }).catch((e) => {
                 console.log(e);
             });
@@ -164,12 +163,16 @@ export class AppveyorAdapter extends Adapter
         if (this.build != this.buildinfo["build"]["version"] &&
             this.buildinfo["build"]["jobs"][0]["artifactsCount"] > 0)
         {
+            if (this.build != null)
+            {
+                this.transport.sendMessage(
+                    Partitions.SYSTEM,
+                    SystemChannels.STORAGE,
+                    this.id,
+                    null);
+            }
             this.build = this.buildinfo["build"]["version"];
-            this.transport.sendMessage(
-                Partitions.SYSTEM,
-                SystemChannels.STORAGE,
-                this.id,
-                null);
+            
         }
     };
 
