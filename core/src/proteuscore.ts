@@ -28,7 +28,7 @@ export class ProteusCore implements TransportClient
         this.adapters = [];
         this.artifacts = new Artifacts(transport);
         this.createPool("default");
-        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {status: "Core Up"});
+        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.START, null, {status: "Core Up"});
     };
 
     public onMessage(message:Message)

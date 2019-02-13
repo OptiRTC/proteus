@@ -3,9 +3,9 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "AccountName",
-        "Project": "ProjectName",
-        "Token": "API Token",
+        "Account": "",
+        "Project": "",
+        "Token": "",
         "PollInterval": 300
     },
     "Core" : {

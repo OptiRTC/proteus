@@ -55,6 +55,12 @@
         "request": "launch",
         "cwd": "${workspaceFolder}",
         "args": ["worker/src/execute.ts"],
+        "env": {
+          "SER_PORT": "/dev/electron",
+          "DFU_PORT": "/dev/ttyAMA0",
+          "RST_PIN": "17",
+          "PLATFORM": "electron"
+        },
         "runtimeArgs": [
           "--inspect-brk",
           "--nolazy",

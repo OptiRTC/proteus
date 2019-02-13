@@ -3,7 +3,7 @@ import {Platforms}  from "common/platforms";
 import {TestComponent} from "common/testcomponents";
 import {Task} from "common/task";
 import {TestCaseResults} from "common/result";
-import { Message, MessageTransport, TransportClient} from "common/messagetransport";
+import { Message, MessageTransport, TransportClient, ArrayToJSON } from "common/messagetransport";
 import { UniqueID } from "common/uniqueid";
 
 export class Job extends UniqueID implements TransportClient
@@ -63,7 +63,7 @@ export class Job extends UniqueID implements TransportClient
             Partitions.POOLS,
             PoolChannels.TASK,
             this.pool_id,
-            this.tasks);
+            ArrayToJSON(this.tasks));
     };
 
     public abort()

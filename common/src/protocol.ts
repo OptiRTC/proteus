@@ -50,5 +50,6 @@ export enum SystemChannels {
 	STORAGE = "storage",
 	RELEASESTORAGE = "releasestorage",
 	QUERY = "query",
-	INFO = "info"
+	INFO = "info",
+	START = "start"
 };

@@ -1,6 +1,6 @@
 import { WorkerState, Worker } from 'common/worker';
 import { Message, MessageTransport } from 'common/messagetransport';
-import { WorkerChannels, TaskChannels, Partitions } from 'common/protocol';
+import { WorkerChannels, TaskChannels, Partitions, SystemChannels } from 'common/protocol';
 import { get } from 'config';
 import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
@@ -27,6 +27,7 @@ export class WorkerClient extends Worker
             get("Worker.timeout"));
         this.task = null;
         this.local_storage = null;
+        this.transport.subscribe(this, Partitions.SYSTEM, SystemChannels.START, null);
         this.config_interval = setInterval(() => this.sendDiscovery(), 15000);
         setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
@@ -82,6 +83,10 @@ export class WorkerClient extends Worker
                 clearInterval(this.config_interval);
                 this.config_interval = null;
                 break;
+            case SystemChannels.START:
+                // Generally indicates a Core reboot
+                this.sendDiscovery();
+                break;
             default:
                 break;
         }
@@ -115,37 +120,44 @@ export class WorkerClient extends Worker
             null);
     };
 
-    public runTest(test:TestComponent):Promise<TestCaseResults> { 
+    public runTest(test:TestComponent):Promise<TestCaseResults> {
+        console.log("Running Test");
         return new Promise<TestCaseResults>((resolve, reject) =>
         {
             let rejectTimeout = setTimeout(() => reject("Test Timed out (" + this.timeout + ")"), this.timeout);
             if (test.scenario != null)
             {
                 // Scenarios are a promise chain
-                let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
-                let scenario = require(scenario_file).scenario;
-                scenario.run(test.metadata).then((results) => {
-                    results = results.map((item) => new Result(item));
-                    resolve(new TestCaseResults({
-                        worker_id: get('Worker.id'),
-                        timestamp: new Date().getTime(),
-                        passing: results.filter((r) => r.status == TestStatus.PASSING),
-                        failed: results.filter((r) => r.status == TestStatus.FAILED)
-                    }));
-                }).catch((e) => {
-                    resolve(new TestCaseResults({
-                        worker_id: get('Worker.id'),
-                        timestamp: new Date().getTime(),
-                        failed: [new Result({
-                            name: test.scenario,
-                            classname: test.scenario,
-                            status: TestStatus.FAILED,
-                            messages: [e]})
-                        ]
-                    }));
-                }).finally(() => {
-                    clearTimeout(rejectTimeout);
-                });
+                try {
+                    let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
+                    let scenario = require(scenario_file).scenario;
+                    scenario.run(test.metadata).then((results) => {
+                        results = results.map((item) => new Result(item));
+                        resolve(new TestCaseResults({
+                            worker_id: get('Worker.id'),
+                            timestamp: new Date().getTime(),
+                            passing: results.filter((r) => r.status == TestStatus.PASSING),
+                            failed: results.filter((r) => r.status == TestStatus.FAILED)
+                        }));
+                    }).catch((e) => {
+                        console.log(e);
+                        resolve(new TestCaseResults({
+                            worker_id: get('Worker.id'),
+                            timestamp: new Date().getTime(),
+                            failed: [new Result({
+                                name: test.scenario,
+                                classname: test.scenario,
+                                status: TestStatus.FAILED,
+                                messages: [e]})
+                            ]
+                        }));
+                    }).finally(() => {
+                        clearTimeout(rejectTimeout);
+                    });
+                } catch (e) {
+                    console.log(e);
+                    reject(e);
+                }
             } else {
                 reject("Scenario not found");
             }

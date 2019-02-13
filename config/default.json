@@ -15,14 +15,14 @@
         "FilePort": 3000
     },
     "Worker": {
-        "id": "TestWorker",
+        "id": "DebugWorker",
         "timeout": 30,
         "pool": "default",
         "platform": "electron",
         "heartbeat": 120
     },
     "Serial": {
-        "port": "/dev/ttyACM0",
+        "port": "/dev/electron",
         "dfuPort": "/dev/ttyAMA0"
     }
 }

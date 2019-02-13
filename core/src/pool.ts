@@ -1,7 +1,7 @@
 import {Task} from "common/task";
 import {WorkerState, Worker} from "common/worker";
 import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "common/protocol";
-import {Message, MessageTransport, TransportClient} from "common/messagetransport";
+import {Message, MessageTransport, TransportClient, ArrayFromJSON } from "common/messagetransport";
 
 export class Pool implements TransportClient
 {
@@ -55,7 +55,7 @@ export class Pool implements TransportClient
                     this);
                 break;
             case PoolChannels.TASK:
-                this.addTasks(message.content);
+                this.addTasks(ArrayFromJSON<Task>(Task, message.content));
                 break;
             case TaskChannels.ABORT:
                 {
