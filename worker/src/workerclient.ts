@@ -16,6 +16,7 @@ export class WorkerClient extends Worker
     public local_storage:Storage;
     public task:Task;
     public config_interval:NodeJS.Timeout;
+    public abort:any;
 
     constructor(transport:MessageTransport)
     {
@@ -29,6 +30,7 @@ export class WorkerClient extends Worker
         this.local_storage = null;
         this.transport.subscribe(this, Partitions.SYSTEM, SystemChannels.START, null);
         this.config_interval = setInterval(() => this.sendDiscovery(), 15000);
+        this.abort = null;
         setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
 
@@ -47,35 +49,35 @@ export class WorkerClient extends Worker
                 this.task = new Task(message.content);
                 this.fetchArtifacts()
                     .then(() => this.runTest(this.task.test)
-                    .then((result:TestCaseResults) =>
-                    {
-                        res = result;
-                        res.worker_id = get('Worker.id');
-                        res.timestamp = new Date().getTime();
-                        res.task = this.task;
-                        res.populateSkipped();
-                    }).catch((e) => {
-                        res = new TestCaseResults({
-                            worker_id: get('Worker.id'),
-                            timestamp: new Date().getTime(),
-                            task: this.task,
-                            failed: [new Result({
-                                name: message.content.name,
-                                classname: message.content.name,
-                                status: TestStatus.FAILED,
-                                messages: [e]})
-                            ]
-                        });
-                    }).finally(() => {
-                        console.log("Task Finished", this.task.id);
-                        this.transport.sendMessage(
-                            Partitions.TASKS,
-                            TaskChannels.RESULT,
-                            this.task.id,
-                            res.toJSON());
-                        this.state = WorkerState.IDLE;
-                        this.sendStatus();
-                    }));
+                        .then((result:TestCaseResults) =>
+                        {
+                            res = result;
+                            res.worker_id = get('Worker.id');
+                            res.timestamp = new Date().getTime();
+                            res.task = this.task;
+                            res.populateSkipped();
+                        }).catch((e) => {
+                            res = new TestCaseResults({
+                                worker_id: get('Worker.id'),
+                                timestamp: new Date().getTime(),
+                                task: this.task,
+                                failed: [new Result({
+                                    name: message.content.name,
+                                    classname: message.content.name,
+                                    status: TestStatus.FAILED,
+                                    messages: [e]})
+                                ]
+                            });
+                        }).finally(() => {
+                            console.log("Task Finished", this.task.id);
+                            this.transport.sendMessage(
+                                Partitions.TASKS,
+                                TaskChannels.RESULT,
+                                this.task.id,
+                                res.toJSON());
+                        }))
+                    .catch((e) => console.log(e))
+                    .finally(() => this.resetState());
                 break;
             case WorkerChannels.CONFIG:
                 console.log("Discovery Finished");
@@ -85,12 +87,23 @@ export class WorkerClient extends Worker
                 break;
             case SystemChannels.START:
                 // Generally indicates a Core reboot
+                if (this.abort != null)
+                {
+                    this.abort();
+                }
                 this.sendDiscovery();
                 break;
             default:
                 break;
         }
     };
+
+    public resetState()
+    {
+        this.abort = null;
+        this.state = WorkerState.IDLE;
+        this.sendStatus();
+    }
 
     public sendDiscovery()
     {
@@ -124,6 +137,7 @@ export class WorkerClient extends Worker
         console.log("Running Test");
         return new Promise<TestCaseResults>((resolve, reject) =>
         {
+            this.abort = () => reject("Aborted Run");
             let rejectTimeout = setTimeout(() => reject("Test Timed out (" + this.timeout + ")"), this.timeout);
             if (test.scenario != null)
             {
@@ -153,6 +167,7 @@ export class WorkerClient extends Worker
                         }));
                     }).finally(() => {
                         clearTimeout(rejectTimeout);
+                        this.resetState();
                     });
                 } catch (e) {
                     console.log(e);
@@ -167,6 +182,7 @@ export class WorkerClient extends Worker
     public fetchArtifacts(): Promise<void>
     {
         return new Promise<void>((resolve, reject) => {
+            this.abort = () => reject("Aborted fetch");
             if (this.task.storage_id == null)
             {
                 reject();
@@ -174,19 +190,29 @@ export class WorkerClient extends Worker
             }
             let storeUrl = "http://" + get('Core.FileServer') + ":" + get('Core.FilePort') + "/" + this.task.storage_id;
             this.local_storage = new Storage();
-            request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
-                if (err != null ||
-                    res.statusCode != 200)
-                {
-                    reject();
-                    return;
-                }
-                let targetFile = '/tmp/artifacts.zip';
-                fs.writeFileSync(targetFile, body, 'binary');
-                let zip = new AdmZip(targetFile);
-                zip.extractAllTo(this.local_storage.path, true);
-                resolve();
-            });
+            try {
+                request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
+                    if (err != null ||
+                        res.statusCode != 200)
+                    {
+                        reject("Failed to contact File Server");
+                        return;
+                    }
+                    try {
+                        let targetFile = '/tmp/artifacts.zip';
+                        fs.writeFileSync(targetFile, body, 'binary');
+                        let zip = new AdmZip(targetFile);
+                        zip.extractAllTo(this.local_storage.path, true);
+                    } catch(e) {
+                        console.log(e);
+                        reject("Error extracting artifacts");
+                        return;
+                    }
+                    resolve();
+                });
+            } catch(e) {
+                reject(e);
+            }
         });
     };
 };
