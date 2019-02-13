@@ -128,7 +128,8 @@ export class Pool implements TransportClient
                 180000);
             this.addWorker(selected_worker);
         }
-
+        selected_worker.state = message.content.state || WorkerState.IDLE;
+        selected_worker.platform = message.content.platform || selected_worker.platform;
         this.transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.CONFIG,

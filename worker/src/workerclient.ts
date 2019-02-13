@@ -99,7 +99,7 @@ export class WorkerClient extends Worker
             Partitions.WORKERS,
             WorkerChannels.DISCOVER,
             this.id,
-            {pool: this.pool_id, platform: this.platform});
+            {pool: this.pool_id, platform: this.platform, state: this.state});
     }
 
     public sendStatus()
