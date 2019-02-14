@@ -42,7 +42,7 @@ export class WorkerClient extends Worker
                 this.sendStatus();
                 break;
             case WorkerChannels.TASK:
-                console.log("Starting Task", message.content);
+                console.log("Starting Task", message.content.id);
                 this.state = WorkerState.BUSY;
                 this.sendStatus();
                 let res:TestCaseResults = null;
@@ -76,7 +76,9 @@ export class WorkerClient extends Worker
                                 this.task.id,
                                 res.toJSON());
                         }))
-                    .catch((e) => console.log(e))
+                    .catch((e) => {
+                        throw e;
+                    })
                     .finally(() => this.resetState());
                 break;
             case WorkerChannels.CONFIG:
@@ -137,8 +139,12 @@ export class WorkerClient extends Worker
         console.log("Running Test");
         return new Promise<TestCaseResults>((resolve, reject) =>
         {
-            this.abort = () => reject("Aborted Run");
-            let rejectTimeout = setTimeout(() => reject("Test Timed out (" + this.timeout + ")"), this.timeout);
+            this.abort = () => {
+                reject("Aborted Run");
+            };
+            let rejectTimeout = setTimeout(() => {
+                reject("Test Timed out (" + this.timeout + ")");
+            }, this.timeout);
             if (test.scenario != null)
             {
                 // Scenarios are a promise chain
@@ -154,7 +160,6 @@ export class WorkerClient extends Worker
                             failed: results.filter((r) => r.status == TestStatus.FAILED)
                         }));
                     }).catch((e) => {
-                        console.log(e);
                         resolve(new TestCaseResults({
                             worker_id: get('Worker.id'),
                             timestamp: new Date().getTime(),
@@ -170,7 +175,6 @@ export class WorkerClient extends Worker
                         this.resetState();
                     });
                 } catch (e) {
-                    console.log(e);
                     reject(e);
                 }
             } else {
@@ -195,7 +199,7 @@ export class WorkerClient extends Worker
                     if (err != null ||
                         res.statusCode != 200)
                     {
-                        reject("Failed to contact File Server");
+                        reject(err);
                         return;
                     }
                     try {
@@ -204,8 +208,7 @@ export class WorkerClient extends Worker
                         let zip = new AdmZip(targetFile);
                         zip.extractAllTo(this.local_storage.path, true);
                     } catch(e) {
-                        console.log(e);
-                        reject("Error extracting artifacts");
+                        reject(e);
                         return;
                     }
                     resolve();

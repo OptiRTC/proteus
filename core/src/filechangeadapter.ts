@@ -27,7 +27,7 @@ export class FileChangeAdapter extends Adapter
             .on('change', (e, p) => this.onChange());
 
         this.watcher.on('error', e => {
-            console.log(e);
+            throw e;
         });
     };
 

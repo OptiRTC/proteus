@@ -150,10 +150,10 @@ export class AppveyorAdapter extends Adapter
                 zip.extractAllTo(storage_path, true);
                 super.loadJob(storage_path, storage_id);
             }).catch((e) => {
-                console.log(e);
+                throw e;
             });
         }).catch((e) => {
-            console.log(e);
+            throw e;
         });
     };
 

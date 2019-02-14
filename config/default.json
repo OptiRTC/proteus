@@ -11,7 +11,7 @@
     "Core" : {
         "MessageServer": "mqtt://proteus.localdomain",
         "MessagePort": 1883,
-        "FileServer": "localhost",
+        "FileServer": "proteus.localdomain",
         "FilePort": 3000
     },
     "Worker": {
