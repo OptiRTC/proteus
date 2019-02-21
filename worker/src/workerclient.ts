@@ -10,6 +10,7 @@ import { relative }  from 'path';
 import request from 'request';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
+declare const __non_webpack_require__:any;
 
 export class WorkerClient extends Worker
 {
@@ -25,12 +26,14 @@ export class WorkerClient extends Worker
             get("Worker.pool"),
             get("Worker.platform"),
             transport,
-            get("Worker.timeout"));
+            parseInt(get("Worker.timeout")) * 1000);
         this.task = null;
-        this.local_storage = null;
+        this.local_storage = new Storage();;
         this.transport.subscribe(this, Partitions.SYSTEM, SystemChannels.START, null);
+        this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.QUERY, null);
         this.config_interval = setInterval(() => this.sendDiscovery(), 15000);
         this.abort = null;
+        this.state = WorkerState.IDLE;
         setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
     };
 
@@ -39,9 +42,26 @@ export class WorkerClient extends Worker
        switch(message.channel)
         {      
             case WorkerChannels.QUERY:
-                this.sendStatus();
+                if (message.content.pool_id == this.pool_id)
+                {
+                    this.sendStatus();
+                }
                 break;
             case WorkerChannels.TASK:
+                if (this.state != WorkerState.IDLE)
+                {
+                    this.transport.sendMessage(
+                        Partitions.WORKERS,
+                        WorkerChannels.REJECT,
+                        this.id,
+                        {task_id: message.content.id});
+                    return;
+                }
+                this.transport.sendMessage(
+                    Partitions.WORKERS,
+                    WorkerChannels.ACCEPT,
+                    this.id,
+                    {task_id: message.content.id});
                 console.log("Starting Task", message.content.id);
                 this.state = WorkerState.BUSY;
                 this.sendStatus();
@@ -57,6 +77,7 @@ export class WorkerClient extends Worker
                             res.task = this.task;
                             res.populateSkipped();
                         }).catch((e) => {
+                            console.log(e);
                             res = new TestCaseResults({
                                 worker_id: get('Worker.id'),
                                 timestamp: new Date().getTime(),
@@ -77,7 +98,7 @@ export class WorkerClient extends Worker
                                 res.toJSON());
                         }))
                     .catch((e) => {
-                        throw e;
+                        console.log(e);
                     })
                     .finally(() => this.resetState());
                 break;
@@ -87,12 +108,20 @@ export class WorkerClient extends Worker
                 clearInterval(this.config_interval);
                 this.config_interval = null;
                 break;
+            case WorkerChannels.ABORT:
+                if (this.abort != null)
+                {
+                    this.abort();
+                }
+                this.resetState();
+                break;
             case SystemChannels.START:
                 // Generally indicates a Core reboot
                 if (this.abort != null)
                 {
                     this.abort();
                 }
+                this.resetState();
                 this.sendDiscovery();
                 break;
             default:
@@ -150,8 +179,15 @@ export class WorkerClient extends Worker
                 // Scenarios are a promise chain
                 try {
                     let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
-                    let scenario = require(scenario_file).scenario;
-                    scenario.run(test.metadata).then((results) => {
+                    let scenario = null;
+                    if (__non_webpack_require__)
+                    {
+                        scenario = __non_webpack_require__(scenario_file).scenario;
+                    } else {
+                        scenario = require(scenario_file).scenario;
+                    }
+                    scenario.run(test.metadata)
+                    .then((results) => {
                         results = results.map((item) => new Result(item));
                         resolve(new TestCaseResults({
                             worker_id: get('Worker.id'),
@@ -193,7 +229,6 @@ export class WorkerClient extends Worker
                 return;
             }
             let storeUrl = "http://" + get('Core.FileServer') + ":" + get('Core.FilePort') + "/" + this.task.storage_id;
-            this.local_storage = new Storage();
             try {
                 request(storeUrl, {encoding: 'binary'}, (err, res, body) => {
                     if (err != null ||

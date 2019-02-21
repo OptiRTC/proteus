@@ -6,10 +6,14 @@
         "FilePort": 3000
     },
     "Worker": {
-        "id": "TestWorker",
-        "timeout": 30,
+        "id": "DebugWorker",
+        "timeout": 120,
         "pool": "default",
-        "platform": "test",
+        "platform": "electron",
         "heartbeat": 120
+    },
+    "Serial": {
+        "port": "/dev/electron",
+        "dfuPort": "/dev/ttyAMA0"
     }
 }

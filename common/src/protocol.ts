@@ -14,7 +14,10 @@ export enum WorkerChannels {
 	HEARTBEAT = "heartbeat",
 	CONFIG = "config",
 	DISCOVER = "discover",
-	QUERY = "query"
+	QUERY = "query",
+	ACCEPT = "accept",
+	REJECT = "reject",
+	ABORT = "abort"
 };
 
 export enum JobChannels {

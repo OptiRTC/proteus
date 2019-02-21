@@ -1,12 +1,7 @@
-let BaseScenario = require('./base-scenario');
+let scenario = require('./spark-unit-scenario').scenario;
 
-const defaultTest = new BaseScenario();
 // Build promise chain
-defaultTest.first().then(() =>
-defaultTest.setPower(true)).then(() =>
-defaultTest.getMessage("Test Starting")).then(() =>
-defaultTest.getState({ propertyname: defaultTest.metadata.propertyname})).then(() =>
-defaultTest.passTest("BasicTest")).then(() => 
-defaultTest.end());
-
-exports.default = defaultTest;
+scenario.run({binary: 'unit-test.bin'})
+.then(results => console.log(JSON.stringify(results)))
+.catch(e => { throw e; })
+.finally(() => process.exit(0));

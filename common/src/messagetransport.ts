@@ -7,7 +7,8 @@ export interface Transportable {
 
 export function ArrayToJSON(input:Transportable[]):any[]
 {
-    return input.map((item) => item.toJSON());
+    let json = input.map((item) => item.toJSON())
+    return json;
 };
 
 export function ArrayFromJSON<T extends Transportable>(ctor: new(content?:any) => T, input:any[]): T[]

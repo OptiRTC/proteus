@@ -6,19 +6,12 @@
         "Account": "",
         "Project": "",
         "Token": "",
-        "PollInterval": 300
+        "PollIntervalSec": 300
     },
     "Core" : {
         "MessageServer": "mqtt://proteus.localdomain",
         "MessagePort": 1883,
-        "FileServer": "localhost",
+        "FileServer": "proteus.localdomain",
         "FilePort": 3000
-    },
-    "Worker": {
-        "id": "TestWorker",
-        "timeout": 30,
-        "pool": "default",
-        "platform": "electron",
-        "heartbeat": 120
     }
 }

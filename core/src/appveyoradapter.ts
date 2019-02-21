@@ -29,7 +29,7 @@ export class AppveyorAdapter extends Adapter
         this.project_slug = get ('Appveyor.Project');
         this.token = get('Appveyor.Token');
         this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
-        this.poll_timer = new Date().getTime();
+        this.poll_timer = 0;
         this.urlmap = new Map<string,string>();
     };
 
@@ -44,7 +44,7 @@ export class AppveyorAdapter extends Adapter
         let task = results[0].task;
         let test_report = {
             name: task.build,
-            time: task.timestamp - new Date().getTime(),
+            time: (task.timestamp - new Date().getTime()) / 1000,
             suites: []
         };
 
@@ -52,20 +52,21 @@ export class AppveyorAdapter extends Adapter
         {
             let suite = {
                 name: task.platform + "-" + task.pool_id,
-                timestamp: new Date().getTime(),
+                timestamp: new Date(),
                 hostname: result.worker_id,
-                time: result.task.started - result.timestamp,
+                time: (result.task.started - result.timestamp) / 1000,
                 testCases: []
             };
-
+            let last = result.timestamp;
             for(let test of result.passing)
             {
                 suite.testCases.push({
                     name: test.name,
                     assertions: test.assertions,
                     classname: test.classname,
-                    time: 0
+                    time: (test.finished - last) / 1000
                 });
+                last = test.finished;
             }
 
             for(let test of result.skipped)
@@ -163,6 +164,7 @@ export class AppveyorAdapter extends Adapter
         if (this.build != this.buildinfo["build"]["version"] &&
             this.buildinfo["build"]["jobs"][0]["artifactsCount"] > 0)
         {
+            this.build = this.buildinfo["build"]["version"];
             if (this.build != null)
             {
                 this.transport.sendMessage(
@@ -171,15 +173,15 @@ export class AppveyorAdapter extends Adapter
                     this.id,
                     null);
             }
-            this.build = this.buildinfo["build"]["version"];
-            
         }
     };
 
     public process()
     {
-        if ((new Date().getTime() - this.poll_timer) > this.poll_interval)
+        let timeSinceLastPoll = (new Date().getTime() - this.poll_timer);
+        if (timeSinceLastPoll > this.poll_interval)
         {
+            console.log("Polling Appveyor");
             this.poll_timer = new Date().getTime();
             this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug)
             .then((buf) => {

@@ -16,7 +16,7 @@
     },
     "Worker": {
         "id": "DebugWorker",
-        "timeout": 30,
+        "timeout": 120,
         "pool": "default",
         "platform": "electron",
         "heartbeat": 120

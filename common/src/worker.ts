@@ -8,7 +8,8 @@ export enum WorkerState
     IDLE,
     BUSY,
     OFFLINE,
-    ERROR
+    ERROR,
+    TASKED,
 };
 
 export class Worker implements TransportClient
@@ -25,7 +26,7 @@ export class Worker implements TransportClient
         public timeout:number = 180)
     {
         this.transport.subscribe(this, Partitions.WORKERS, null, this.id);
-        this.state = WorkerState.IDLE;
+        this.state = WorkerState.OFFLINE;
         this.heartbeat = 0;
         this.task = null;
     };
@@ -40,7 +41,13 @@ export class Worker implements TransportClient
                 break;
 
             case WorkerChannels.STATUS:
-                this.state = message.content.state in WorkerState ? message.content.state : WorkerState.ERROR;
+                if (this.state != WorkerState.TASKED)
+                {
+                    this.state = message.content.state in WorkerState ? message.content.state : WorkerState.ERROR;
+                }
+                break;
+            case WorkerChannels.ACCEPT:
+                this.state = WorkerState.BUSY;
                 break;
             default:
                 break;
@@ -49,7 +56,7 @@ export class Worker implements TransportClient
 
     public setTask(task:Task)
     {
-        this.state = WorkerState.BUSY;
+        this.state = WorkerState.TASKED;
         this.task = task;
         this.task.started = new Date().getTime();
         this.task.worker_id = this.id;

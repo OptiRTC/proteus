@@ -5,6 +5,7 @@ import { TestCaseResults } from "common/result";
 import { ncp } from 'ncp';
 import { Partitions, SystemChannels } from "common/protocol";
 import { watch, FSWatcher } from 'chokidar';
+import { existsSync, mkdirSync } from 'fs';
 
 export class FileChangeAdapter extends Adapter
 {
@@ -19,6 +20,17 @@ export class FileChangeAdapter extends Adapter
     {
         super(transport, "Watch:" + buildpath);
         this.debounce = null;
+
+        if (!existsSync(this.buildpath))
+        {
+            mkdirSync(this.buildpath, {recursive: true});
+        }
+
+        if (!existsSync(this.resultspath))
+        {
+            mkdirSync(this.resultspath, { recursive: true});
+        }
+
         this.watcher = watch(this.buildpath, {
             ignoreInitial: true
         });
@@ -43,13 +55,14 @@ export class FileChangeAdapter extends Adapter
         if (!this.debounce)
         {
             this.debounce = setTimeout(() => {
+                console.log("New local job");
                 this.transport.sendMessage(
                     Partitions.SYSTEM,
                     SystemChannels.STORAGE,
                     this.id,
                     null);
                 this.debounce = null;
-            }, 10000);
+            }, 20000);
         }
     };
 
@@ -57,7 +70,11 @@ export class FileChangeAdapter extends Adapter
     {
         // Upload Test to URL
         let name = "tests-" + results[0].task.build + "-" + (new Date().getTime());
-        writeFileSync(this.resultspath + "/" + name, JSON.stringify(results));
+        if (!existsSync(this.resultspath))
+        {
+            mkdirSync(this.resultspath, {recursive: true});
+        }
+        writeFileSync(this.resultspath + "/" + name + '.xml', JSON.stringify(results));
     };
 
     public loadJob(storage_path:string, storage_id:string)

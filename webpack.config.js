@@ -1,5 +1,5 @@
 const path = require('path');
-
+const webpack = require('webpack');
 
 module.exports = {
     target: 'node',
@@ -11,10 +11,7 @@ module.exports = {
             }
         ]
     },
-    node: {
-        fs: "empty",
-        serialport: "empty"
-    },
+    node: false,
     mode: 'development',
     optimization: {
         providedExports: true,

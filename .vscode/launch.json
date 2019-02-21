@@ -56,9 +56,10 @@
         "cwd": "${workspaceFolder}",
         "args": ["worker/src/execute.ts"],
         "env": {
-          "SER_PORT": "/dev/electron",
+          "NODE_PATH": "/usr/local/lib/node_modules/lib/node_modules/",
+          "PORT": "/dev/electron",
+          "RST_PIN": "none",
           "DFU_PORT": "/dev/ttyAMA0",
-          "RST_PIN": "17",
           "PLATFORM": "electron"
         },
         "runtimeArgs": [
@@ -71,6 +72,17 @@
         ],
         "protocol": "inspector",
         "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Remote-Worker",
+        "type": "node",
+        "request": "attach",
+        "address": "testrig00.localdomain",
+        "localRoot": "${workspaceFolder}",
+        "remoteRoot": "/home/pi/proteus",
+        "protocol": "inspector",
         "internalConsoleOptions": "neverOpen",
         "port": 9229
       }

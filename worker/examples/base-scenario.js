@@ -1,38 +1,46 @@
-const config = require('config');
-
 class BaseScenario {
     constructor()
     {
         this.name = "Scenario";
-        
-        this.DEFAULT_TIMEOUT = config.get('Worker.timeout');
+        this.DEFAULT_TIMEOUT = (process.env.TIMEOUT || 300) * 1000;
         this.timeout = null;
-        this.root_promise = null;
-        this.root_start = null;
-        
-        this.pass = null;
-        this.fail = null;
-        this.line_callback = null;
         this.results = [];
-        this.metadata = null;
+        this.init = {};
+        this.reject = null;
+        this.resolve = null;
+        this.last_event = null;
+        this.run_promise = null;
+        this.resetScenario();
     }
 
-    first()
+    resetScenario()
     {
-        this.root_promise = new Promise((resolve, reject) => this.root_start = resolve);
-        return this.root_promise;
+        if (this.timeout != null) 
+        {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        this.results = [];
+        this.run_promise = new Promise((resolve, reject) => {
+            this.reject = reject;
+            this.resolve = resolve;
+        });
+        this.init = {};
+        this.init.promise = new Promise((resolve, reject) => {
+            this.init.resolve = resolve;
+            this.init.reject = reject;
+        });
+        this.last_event = this.init.promise;
+
+        this.run_promise.finally(() => this.resetScenario());
     }
-    
-    // Must Implement, returns Execution Promise
+
+    // Setup Promises here, easy to debug
     run(metadata)
     {
-        this.metadata = metadata;
-        return new Promise((resolve, reject) => {
-            this.timeout = setTimeout(() => reject(), this.DEFAULT_TIMEOUT);
-            this.pass = resolve;
-            this.fail = reject;
-            this.root_start(); // resolves the root promise and starts the chain
-        });
+        this.timeout = setTimeout(() => this.reject("Timed out (" + this.DEFAULT_TIMEOUT + ")"), this.DEFAULT_TIMEOUT);
+        this.init.resolve();
+        return this.run_promise;
     }
 
     passTest(name, asserts = 1)
@@ -64,11 +72,16 @@ class BaseScenario {
 
     end()
     {
-        clearTimeout(this.timeout);
-        this.pass(this.results);
+        this.resolve(this.results);
+    }
+
+    error(e)
+    {
+        console.log(e);
+        this.reject(e);
     }
 
 
 };
 
-exports.default = BaseScenario;
+exports.BaseScenario = BaseScenario;
