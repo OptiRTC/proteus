@@ -180,7 +180,7 @@ export class WorkerClient extends Worker
                 try {
                     let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
                     let scenario = null;
-                    if (__non_webpack_require__)
+                    if (typeof __non_webpack_require__ != "undefined")
                     {
                         scenario = __non_webpack_require__(scenario_file).scenario;
                     } else {
