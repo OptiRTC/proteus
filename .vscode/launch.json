@@ -34,6 +34,7 @@
         "name": "Core",
         "type": "node",
         "request": "launch",
+        "smartStep": false,
         "cwd": "${workspaceFolder}",
         "args": ["core/src/execute.ts"],
         "runtimeArgs": [
@@ -59,7 +60,8 @@
           "NODE_PATH": "/usr/local/lib/node_modules/lib/node_modules/",
           "PORT": "/dev/electron",
           "RST_PIN": "none",
-          "DFU_PORT": "/dev/ttyAMA0",
+          "SER_PRT": "/dev/ttyACM0",
+          "DFU_PORT": "/dev/ttyACM0",
           "PLATFORM": "electron"
         },
         "runtimeArgs": [
@@ -86,6 +88,6 @@
         "internalConsoleOptions": "neverOpen",
         "port": 9229
       }
-    
+
     ]
   }

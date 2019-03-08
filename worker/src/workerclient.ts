@@ -40,7 +40,7 @@ export class WorkerClient extends Worker
     public onMessage(message:Message)
     {
        switch(message.channel)
-        {      
+        {
             case WorkerChannels.QUERY:
                 if (message.content.pool_id == this.pool_id)
                 {
@@ -131,6 +131,7 @@ export class WorkerClient extends Worker
 
     public resetState()
     {
+        console.log("Worker Idle");
         this.abort = null;
         this.state = WorkerState.IDLE;
         this.sendStatus();
@@ -182,8 +183,10 @@ export class WorkerClient extends Worker
                     let scenario = null;
                     if (typeof __non_webpack_require__ != "undefined")
                     {
+                        delete __non_webpack_require__.cache[__non_webpack_require__.resolve(scenario_file)];
                         scenario = __non_webpack_require__(scenario_file).scenario;
                     } else {
+                        delete require.cache[require.resolve(scenario_file)];
                         scenario = require(scenario_file).scenario;
                     }
                     scenario.run(test.metadata)
@@ -208,7 +211,6 @@ export class WorkerClient extends Worker
                         }));
                     }).finally(() => {
                         clearTimeout(rejectTimeout);
-                        this.resetState();
                     });
                 } catch (e) {
                     reject(e);

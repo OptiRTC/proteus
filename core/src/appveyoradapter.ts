@@ -2,23 +2,23 @@ import { Adapter } from "core/adapter";
 import {MessageTransport} from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
-import { Partitions, SystemChannels } from "common/protocol";
+import { Partitions, SystemChannels, JobChannels } from "common/protocol";
 import { getJunitXml } from 'junit-xml';
 import { Readable } from "stream";
 import AdmZip from 'adm-zip';
 import request from 'request';
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 
 export class AppveyorAdapter extends Adapter
 {
     protected account_name:string;
     protected project_slug:string;
     protected build:string;
+    protected job_storage:Map<string, string>;
     protected token:string;
     protected poll_interval:number;
     protected poll_timer:number;
     protected buildinfo:any;
-    protected urlmap:Map<string,string>;
 
     constructor(
         transport:MessageTransport)
@@ -30,11 +30,11 @@ export class AppveyorAdapter extends Adapter
         this.token = get('Appveyor.Token');
         this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
         this.poll_timer = 0;
-        this.urlmap = new Map<string,string>();
+        this.job_storage = new Map<string, string>();
     };
 
     public getBuild():string
-    {   
+    {
         return this.build;
     };
 
@@ -101,8 +101,8 @@ export class AppveyorAdapter extends Adapter
         const stream = new Readable();
         stream._read = () => {};
         stream.push(junitXml);
-        let options = this.appveyorOptions(this.urlmap[results[0].task.build]);
-        
+        let options = this.appveyorOptions("api/testresults/junit/" + results[0].task.build);
+
         options['formData'] = {
             file: stream
         };
@@ -139,39 +139,74 @@ export class AppveyorAdapter extends Adapter
 
     public loadJob(storage_path:string, storage_id:string)
     {
-        this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts").then((buffer) =>
+        let target_job = null;
+        // Find first job that needs storage
+        for(let job of this.job_storage.keys())
+        {
+            if (this.job_storage.get(job) == null)
+            {
+                this.job_storage.set(job, storage_id);
+                target_job = job;
+                break;
+            }
+        }
+
+        if (target_job == null)
+        {
+            throw "No jobs need storage!";
+        }
+
+        this.appveyorGet("api/buildjobs/" + target_job + "/artifacts").then((buffer) =>
         {
             let artifacts = JSON.parse(buffer);
-            this.urlmap[this.build] = "api/testresults/junit/" + this.buildinfo["build"]["jobs"][0]["jobId"];
-            this.appveyorGet("api/buildjobs/" + this.buildinfo["build"]["jobs"][0]["jobId"] + "/artifacts/" + artifacts[0]["fileName"]).then((body) => 
+            this.appveyorGet("api/buildjobs/" + target_job + "/artifacts/" + artifacts[0]["fileName"]).then((body) =>
             {
-                let targetFile = "/tmp/" + this.buildinfo["build"]["jobs"][0]["jobId"] + ".zip";
+                let targetFile = "/tmp/" + target_job + ".zip";
                 writeFileSync(targetFile, body);
                 let zip = new AdmZip(targetFile);
                 zip.extractAllTo(storage_path, true);
-                super.loadJob(storage_path, storage_id);
-            }).catch((e) => {
-                throw e;
-            });
-        }).catch((e) => {
-            throw e;
-        });
+                let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
+                config["adapter_id"] = this.id;
+                config["build"] = target_job;
+                config["store_id"] = storage_id;
+                this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
+                this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
+                console.log("Starting Appveyor job " + target_job);
+            }).catch((e) => {throw e;});
+        }).catch((e) => { throw e;});
     };
 
     public parseBuild(buffer:any)
     {
         this.buildinfo = JSON.parse(buffer);
-        if (this.build != this.buildinfo["build"]["version"] &&
-            this.buildinfo["build"]["jobs"][0]["artifactsCount"] > 0)
+        if (this.build != this.buildinfo["build"]["version"])
         {
-            this.build = this.buildinfo["build"]["version"];
-            if (this.build != null)
-            {
+            // Ensure all jobs are finished
+            this.job_storage.forEach((storage:string, jobId:string) => {
                 this.transport.sendMessage(
-                    Partitions.SYSTEM,
-                    SystemChannels.STORAGE,
-                    this.id,
-                    null);
+                    Partitions.JOBS,
+                    JobChannels.ABORT,
+                    null,
+                    { build: jobId });
+            });
+            this.job_storage.clear();
+            this.build = this.buildinfo["build"]["version"];
+        }
+        if (this.build != null)
+        {
+            for(let job of this.buildinfo["build"]["jobs"])
+            {
+                if (job["artifactsCount"] != 0 &&
+                    !this.job_storage.has(job["jobId"]))
+                {
+                    this.job_storage.set(job["jobId"], null);
+                    this.transport.sendMessage(
+                        Partitions.SYSTEM,
+                        SystemChannels.STORAGE,
+                        this.id,
+                        null);
+                    console.log("Appveyor artifacts " + job["jobId"]);
+                }
             }
         }
     };
@@ -181,7 +216,6 @@ export class AppveyorAdapter extends Adapter
         let timeSinceLastPoll = (new Date().getTime() - this.poll_timer);
         if (timeSinceLastPoll > this.poll_interval)
         {
-            console.log("Polling Appveyor");
             this.poll_timer = new Date().getTime();
             this.appveyorGet("api/projects/" + this.account_name + "/" + this.project_slug)
             .then((buf) => {

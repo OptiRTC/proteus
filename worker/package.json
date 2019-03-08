@@ -21,6 +21,7 @@
     "@types/config": "0.0.34",
     "@types/node": "^10.12.18",
     "adm-zip": "^0.4.13",
-    "config": "^3.0.1"
+    "config": "^3.0.1",
+    "request": "^2.88.0"
   }
 }
