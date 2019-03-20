@@ -1,13 +1,13 @@
 import { Adapter } from "core/adapter";
-import {MessageTransport} from "common/messagetransport";
+import { MessageTransport } from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
 import { Partitions, SystemChannels, JobChannels } from "common/protocol";
 import { getJunitXml } from 'junit-xml';
-import { Readable } from "stream";
 import AdmZip from 'adm-zip';
 import request from 'request';
 import { writeFileSync, readFileSync } from 'fs';
+import { Readable } from 'stream';
 
 export class AppveyorAdapter extends Adapter
 {
@@ -97,17 +97,29 @@ export class AppveyorAdapter extends Adapter
 
             test_report.suites.push(suite);
         };
-        const junitXml = getJunitXml(test_report);
-        const stream = new Readable();
-        stream._read = () => {};
-        stream.push(junitXml);
-        let options = this.appveyorOptions("api/testresults/junit/" + results[0].task.build);
-
-        options['formData'] = {
-            file: stream
-        };
-
-        request.post(options);
+        const junitXml = new Readable();
+        let xmlstring = getJunitXml(test_report);
+        junitXml.push(xmlstring);
+        junitXml.push(null);
+        console.log(xmlstring);
+        this.appveyorPost("api/testresults/junit/" + results[0].task.build, {
+            formData: {
+                file: {
+                    value: junitXml,
+                    options: {
+                        filetype: 'xml',
+                        filename: [
+                            task.build,
+                            task.test.scenario,
+                            task.test.name
+                        ].join("_") + ".xml",
+                        knownLength: junitXml
+                    }
+                }
+            }
+        })
+        .then((res) => console.log(res))
+        .catch((err) => console.log(err));
     };
 
     public appveyorOptions(path:string)
@@ -125,13 +137,34 @@ export class AppveyorAdapter extends Adapter
     {
         return new Promise((resolve, reject) => {
             request(this.appveyorOptions(path), (err, res, body) => {
-                if (!err &&
+                if (err == null &&
                     res.statusCode >= 200 &&
                     res.statusCode < 300)
                 {
                     resolve(body);
                 } else {
                     reject(err);
+                }
+            });
+        });
+    };
+
+    public appveyorPost(path:string, options:any): Promise<any>
+    {
+        return new Promise((resolve, reject) => {
+            Object.assign(options, this.appveyorOptions(path));
+            request.post(options, (err, res, body) => {
+                if (err != null)
+                {
+                    reject(err);
+                    return;
+                }
+                if(res.statusCode >= 200 &&
+                   res.statusCode < 300)
+                {
+                    resolve(JSON.parse(body));
+                } else {
+                    reject(JSON.parse(body));
                 }
             });
         });

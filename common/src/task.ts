@@ -5,6 +5,20 @@ import { MessageTransport, Transportable } from "common/messagetransport";
 import { Partitions, TaskChannels } from "common/protocol";
 import { Result, TestStatus, TestCaseResults } from "common/result";
 
+export enum TaskStatus
+{
+    NONE = "None",
+    RUNNING = "Running",
+    PASSED = "Passed",
+    FAILED = "Failed",
+    IGNORED = "Ignored",
+    SKIPPED = "Skipped",
+    INCONCLUSIVE = "Inconclusive",
+    NOTFOUND = "NotFound",
+    CANCELLED = "Cancelled",
+    NOTRUNNABLE = "NotRunable"
+};
+
 export class Task extends UniqueID implements Transportable
 {
     public build:string;
@@ -16,10 +30,13 @@ export class Task extends UniqueID implements Transportable
     public test:TestComponent;
     public timestamp:number;
     public started:number;
+    public status:TaskStatus;
+
 
     constructor(content?:any)
     {
         super();
+        this.status = TaskStatus.NONE;
         if (content)
         {
             this.fromJSON(content);
@@ -31,6 +48,7 @@ export class Task extends UniqueID implements Transportable
 
     public abort(transport:MessageTransport)
     {
+        this.status = TaskStatus.CANCELLED;
         let results = [];
         for (let expected of this.test.expectations)
         {
@@ -80,7 +98,7 @@ export class Task extends UniqueID implements Transportable
         if (typeof(content.id) != 'undefined')
         {
             this.id = content.id;
-        } 
+        }
         this.test = new TestComponent(content.test);
         this.build = typeof(content.build) == 'undefined' ? "NAMEERROR" : content.build;
         this.job_id = typeof(content.job_id) == 'undefined' ? null : content.job_id;

@@ -1,4 +1,4 @@
-import {Task} from "common/task";
+import {TaskStatus, Task} from "common/task";
 import {WorkerState, Worker} from "common/worker";
 import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "common/protocol";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON } from "common/messagetransport";
@@ -160,11 +160,21 @@ export class Pool implements TransportClient
             case WorkerChannels.ACCEPT:
                 // Move task from pending to active
                 {
+                    let task = null;
                     let index = this.pending_tasks.findIndex((task) => task.id == message.content.task_id);
                     if (index != -1)
                     {
-                        this.active_tasks.push(this.pending_tasks[index]);
+                        task = this.pending_tasks[index];
+                        this.active_tasks.push(task);
                         this.pending_tasks.splice(index, 1);
+                    }
+                    if (task != null) {
+                        task.status = TaskStatus.RUNNING;
+                        this.transport.sendMessage(
+                            Partitions.TASKS,
+                            TaskChannels.STATUS,
+                            task.id,
+                            task.toJSON());
                     }
                 }
                 break;
@@ -193,7 +203,7 @@ export class Pool implements TransportClient
             {
                 selected_worker = worker;
                 let rejected = [];
-                this.active_tasks = this.active_tasks.filter((task) => 
+                this.active_tasks = this.active_tasks.filter((task) =>
                 {
                     if (task.worker_id == worker.id)
                     {
@@ -306,7 +316,7 @@ export class Pool implements TransportClient
                 let task = this.getPlatformTask(worker);
                 if (task == null || task == undefined)
                 {
-                    continue;                    
+                    continue;
                 }
                 worker.setTask(task);
                 this.pending_tasks.push(task);
