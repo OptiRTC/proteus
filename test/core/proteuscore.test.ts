@@ -6,7 +6,6 @@ import { Adapter } from "core/adapter";
 import { TestCaseResults, Result, TestStatus } from "common/result";
 import { WorkerState } from "common/worker";
 import { writeFileSync } from "fs";
-import { TmpStorage } from "common/storage";
 import { Platforms } from "common/platforms";
 import { Task } from "common/task";
 import request from 'request';
@@ -136,47 +135,47 @@ test('Adapter-to-worker-to-adapter', done => {
             switch(message.channel)
             {
 
-            case WorkerChannels.TASK:
-                let results = [];
-                let t = new Task().fromJSON(message.content);
-                for(let expectation of t.test.expectations)
-                {
-                    results.push(new Result({
-                        name: expectation,
-                        classname: expectation,
-                        status: TestStatus.PASSING,
-                        assertions: 1,
-                        finished: new Date().getTime(),
-                        messages: []}));
-                }
-                this.transport.sendMessage(
-                    Partitions.TASKS,
-                    TaskChannels.RESULT,
-                    t.id,
-                    new TestCaseResults({
-                        worker_id: message.address,
-                        passing: results,
-                        failed: [],
-                        task: t}));
-                this.transport.sendMessage(
-                            Partitions.WORKERS,
-                            WorkerChannels.STATUS,
-                            t.worker_id,
-                            { 
-                                'state': WorkerState.IDLE
-                            });
-                break;
-            case WorkerChannels.QUERY:
-                this.transport.sendMessage(
-                    Partitions.WORKERS,
-                    WorkerChannels.STATUS,
-                    t.worker_id,
-                    { 
-                        'state': WorkerState.IDLE
-                    });
-                break;
-            default:
-                break;
+                case WorkerChannels.TASK:
+                    let results = [];
+                    let t = new Task().fromJSON(message.content);
+                    for(let expectation of t.test.expectations)
+                    {
+                        results.push(new Result({
+                            name: expectation,
+                            classname: expectation,
+                            status: TestStatus.PASSING,
+                            assertions: 1,
+                            finished: new Date().getTime(),
+                            messages: []}));
+                    }
+                    this.transport.sendMessage(
+                        Partitions.TASKS,
+                        TaskChannels.RESULT,
+                        t.id,
+                        new TestCaseResults({
+                            worker_id: message.address,
+                            passing: results,
+                            failed: [],
+                            task: t}));
+                    this.transport.sendMessage(
+                                Partitions.WORKERS,
+                                WorkerChannels.STATUS,
+                                t.worker_id,
+                                { 
+                                    'state': WorkerState.IDLE
+                                });
+                    break;
+                case WorkerChannels.QUERY:
+                    this.transport.sendMessage(
+                        Partitions.WORKERS,
+                        WorkerChannels.STATUS,
+                        t.worker_id,
+                        { 
+                            'state': WorkerState.IDLE
+                        });
+                    break;
+                default:
+                    break;
             }
         }
     };
@@ -189,10 +188,10 @@ test('Adapter-to-worker-to-adapter', done => {
             this.done = false;
         };
 
-        public loadJob(store:TmpStorage)
+        public loadJob(storage_path:string, storage_id:string)
         {
             writeFileSync(
-                store.path + "/test.json", 
+                storage_path + "/test.json", 
                 JSON.stringify(
                 {
                     "name": "ProductTests",
@@ -211,7 +210,7 @@ test('Adapter-to-worker-to-adapter', done => {
                         }
                     ]
                 }));
-            super.loadJob(store);
+            super.loadJob(storage_path, storage_id);
         };
 
         public handleResults(results:TestCaseResults[])

@@ -1,6 +1,6 @@
 import { Adapter } from 'core/adapter';
 import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
-import { TmpStorage } from 'common/storage';
+import { Storage } from 'common/storage';
 import { Partitions, JobChannels, AdapterChannels } from 'common/protocol';
 import { writeFileSync } from 'fs';
 
@@ -39,7 +39,7 @@ test('Adapter STORAGEREADY fires loadJob', done => {
 	let adapter = new Adapter(transport, 'testadapter');
 
 	let config = {"test": "test" };
-	let store = new TmpStorage();
+	let store = new Storage();
 	writeFileSync(store.path + "/test.json", JSON.stringify(config));
 	transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, adapter.id, store);
 	while(!test_listener.called) {transport.processAll();}

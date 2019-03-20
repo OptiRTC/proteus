@@ -202,12 +202,15 @@ export class WorkerClient extends Worker
                         resolve(new TestCaseResults({
                             worker_id: get('Worker.id'),
                             timestamp: new Date().getTime(),
-                            failed: [new Result({
-                                name: test.scenario,
-                                classname: test.scenario,
-                                status: TestStatus.FAILED,
-                                messages: [e]})
-                            ]
+                            failed: test.expectations.map((item) => {
+                                new Result({
+                                    name: item,
+                                    classname: test.scenario,
+                                    started: new Date().getTime(),
+                                    finished: new Date().getTime(),
+                                    status: TestStatus.FAILED,
+                                    messages: [e]})
+                                })
                         }));
                     }).finally(() => {
                         clearTimeout(rejectTimeout);

@@ -16,9 +16,9 @@ test('adapter-to-workerclient', done => {
             this.done = false;
         };
 
-        public loadJob(store:TmpStorage)
+        public loadJob(store:Storage)
         {
-            store.copyFrom('./integration/store').then(() => super.loadJob(store));
+            ncp('./integration/store', store.path, (err) => super.loadJob(store.path, store.id));
         };
 
         public handleResults(results:TestCaseResults[])

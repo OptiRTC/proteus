@@ -1,13 +1,114 @@
 import { Adapter } from "core/adapter";
-import {MessageTransport} from "common/messagetransport";
+import { MessageTransport } from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
 import { Partitions, SystemChannels, JobChannels } from "common/protocol";
-import { getJunitXml } from 'junit-xml';
-import { Readable } from "stream";
 import AdmZip from 'adm-zip';
 import request from 'request';
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, createReadStream } from 'fs';
+import * as xmlbuilder from 'xmlbuilder';
+
+// https://raw.githubusercontent.com/junit-team/junit5/master/platform-tests/src/test/resources/jenkins-junit.xsd
+class junit
+{
+    protected xml:string;
+
+    constructor(results:TestCaseResults[])
+    {
+        let task = results[0].task;
+
+        let total_tests = 0;
+        let total_failures = 0;
+        let total_time = 0;
+        results.reduce((acc, res:TestCaseResults) => acc + res.failed.length, 0);
+        results.forEach((res:TestCaseResults) => {
+            total_tests += res.passing.length;
+            total_tests += res.skipped.length;
+            total_failures += res.failed.length;
+            total_time += res.timestamp - res.task.started;
+        })
+        total_tests += total_failures;
+
+        let root = xmlbuilder.create('testsuites')
+            .att('name', task.platform + "-" + task.pool_id)
+            .att('tests', total_tests)
+            .att('failures', total_failures)
+            .att('time', total_time);
+
+        for(let result of results)
+        {
+            let testclass_name = result.task.test.name;
+            let suite = root.ele(
+                'testsuite',
+                {
+                    name: result.task.test.scenario,
+                    tests: result.passing.length + result.failed.length + result.skipped.length,
+                    failures: result.failed.length,
+                    time: result.timestamp - result.task.started,
+                    skipped: result.skipped.length,
+                    timestamp: result.timestamp,
+                    hostname: result.worker_id
+                });
+
+            let last = result.task.started;
+            for(let test of result.passing)
+            {
+                suite.ele(
+                    'testcase',
+                    {
+                        name: test.name,
+                        assertions: test.assertions || 0,
+                        time: (test.finished - last),
+                        classname: testclass_name,
+                        status: test.status
+                    });
+                last = test.finished;
+            }
+
+            for(let test of result.skipped)
+            {
+                suite.ele(
+                    'testcase',
+                    {
+                        name: test.name,
+                        assertions: test.assertions || 0,
+                        time: (test.finished - last),
+                        classname: testclass_name,
+                        status: test.status
+                    }).ele('skipped');
+                last = test.finished;
+            }
+
+            for(let test of result.failed)
+            {
+                let failures = test.messages.map((v) => {
+                    return { message: v};
+                });
+                suite.ele(
+                    'testcase',
+                    {
+                        name: test.name,
+                        assertions: test.assertions || 0,
+                        time: (test.finished - last),
+                        classname: testclass_name,
+                        status: test.status
+                    }).ele('failure', JSON.stringify(failures));
+                last = test.finished;
+            }
+        };
+        this.xml = root.end({pretty: true});
+    }
+
+    public writeFile(path:string)
+    {
+        writeFileSync(path, this.xml);
+    };
+
+    public xmlString():string
+    {
+        return this.xml;
+    };
+};
 
 export class AppveyorAdapter extends Adapter
 {
@@ -41,73 +142,26 @@ export class AppveyorAdapter extends Adapter
     public handleResults(results:TestCaseResults[])
     {
         // Upload Test to URL
-        let task = results[0].task;
-        let test_report = {
-            name: task.build,
-            time: (task.timestamp - new Date().getTime()) / 1000,
-            suites: []
-        };
-
-        for(let result of results)
-        {
-            let suite = {
-                name: task.platform + "-" + task.pool_id,
-                timestamp: new Date(),
-                hostname: result.worker_id,
-                time: (result.task.started - result.timestamp) / 1000,
-                testCases: []
-            };
-            let last = result.timestamp;
-            for(let test of result.passing)
-            {
-                suite.testCases.push({
-                    name: test.name,
-                    assertions: test.assertions,
-                    classname: test.classname,
-                    time: (test.finished - last) / 1000
-                });
-                last = test.finished;
+        let junitxml = new junit(results);
+        let file = "/tmp/results_" + results[0].task.build + ".xml";
+        console.log(junitxml.xmlString());
+        junitxml.writeFile(file);
+        this.appveyorUpload("api/testresults/junit/" + results[0].task.build, file)
+        .then((res) => {
+            try {
+                console.log(JSON.parse(res));
+            } catch(e) {
+                // NOOP
             }
-
-            for(let test of result.skipped)
-            {
-                suite.testCases.push({
-                    name: test.name,
-                    assertions: test.assertions,
-                    classname: test.classname,
-                    time: 0,
-                    skipped: true,
-                });
+        })
+        .catch((err) => {
+            try {
+                console.log(JSON.parse(err));
+            } catch(e) {
+                // NOOP
             }
-
-            for(let test of result.failed)
-            {
-                let failures = test.messages.map((v) => {
-                    return { message: v};
-                });
-
-                suite.testCases.push({
-                    name: test.name,
-                    assertions: test.assertions,
-                    classname: test.classname,
-                    time: 0,
-                    failures: failures
-                });
-            }
-
-            test_report.suites.push(suite);
-        };
-        const junitXml = getJunitXml(test_report);
-        const stream = new Readable();
-        stream._read = () => {};
-        stream.push(junitXml);
-        let options = this.appveyorOptions("api/testresults/junit/" + results[0].task.build);
-
-        options['formData'] = {
-            file: stream
-        };
-
-        request.post(options);
+            
+        });
     };
 
     public appveyorOptions(path:string)
@@ -125,7 +179,7 @@ export class AppveyorAdapter extends Adapter
     {
         return new Promise((resolve, reject) => {
             request(this.appveyorOptions(path), (err, res, body) => {
-                if (!err &&
+                if (err == null &&
                     res.statusCode >= 200 &&
                     res.statusCode < 300)
                 {
@@ -136,6 +190,48 @@ export class AppveyorAdapter extends Adapter
             });
         });
     };
+
+    public appveyorPost(path:string, options:any): Promise<any>
+    {
+        return new Promise((resolve, reject) => {
+            Object.assign(options, this.appveyorOptions(path));
+            request.post(options, (err, res, body) => {
+                if (err != null)
+                {
+                    reject(err);
+                    return;
+                }
+                if(res.statusCode >= 200 &&
+                   res.statusCode < 300)
+                {
+                    resolve(JSON.parse(body));
+                } else {
+                    reject(JSON.parse(body));
+                }
+            });
+        });
+    };
+
+    public appveyorUpload(path:string, file:string): Promise<any>
+    {
+        return new Promise((resolve, reject) => {
+            let req = request.post(this.appveyorOptions(path), (err, res, body) => {
+                if (err != null)
+                {
+                    reject(err);
+                    return;
+                }
+                if (res.statusCode >= 200 &&
+                    res.statusCode < 300)
+                {
+                    resolve(body);
+                } else {
+                    reject(body);
+                }
+            });
+            req.form().append('file', createReadStream(file));
+        });
+    }
 
     public loadJob(storage_path:string, storage_id:string)
     {
@@ -155,25 +251,39 @@ export class AppveyorAdapter extends Adapter
         {
             throw "No jobs need storage!";
         }
-
-        this.appveyorGet("api/buildjobs/" + target_job + "/artifacts").then((buffer) =>
-        {
-            let artifacts = JSON.parse(buffer);
-            this.appveyorGet("api/buildjobs/" + target_job + "/artifacts/" + artifacts[0]["fileName"]).then((body) =>
+        console.log("Fetching Artifact Metadata for " + target_job);
+        let fetch_timeout = null;
+        let fetch = () => {
+            this.appveyorGet("api/buildjobs/" + target_job + "/artifacts").then((buffer) =>
             {
-                let targetFile = "/tmp/" + target_job + ".zip";
-                writeFileSync(targetFile, body);
-                let zip = new AdmZip(targetFile);
-                zip.extractAllTo(storage_path, true);
-                let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
-                config["adapter_id"] = this.id;
-                config["build"] = target_job;
-                config["store_id"] = storage_id;
-                this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
-                this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
-                console.log("Starting Appveyor job " + target_job);
-            }).catch((e) => {throw e;});
-        }).catch((e) => { throw e;});
+                let artifacts = JSON.parse(buffer);
+                console.log("Fetching Artifact ZIP for " + target_job);
+                this.appveyorGet("api/buildjobs/" + target_job + "/artifacts/" + artifacts[0]["fileName"]).then((body) =>
+                {
+                    console.log("Extracting ZIP for " + target_job);
+                    let targetFile = "/tmp/" + target_job + ".zip";
+                    writeFileSync(targetFile, body);
+                    let zip = new AdmZip(targetFile);
+                    zip.extractAllTo(storage_path, true);
+                    let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
+                    config["adapter_id"] = this.id;
+                    config["build"] = target_job;
+                    config["store_id"] = storage_id;
+                    if (fetch_timeout != null)
+                    {
+                        clearTimeout(fetch_timeout);
+                    }
+                    this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
+                    this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
+                    console.log("Starting Appveyor job " + target_job);
+                }).catch((e) => console.log(e));
+            }).catch((e) => console.log(e));
+        };
+        let refetch = () => {
+            fetch();
+            fetch_timeout = setTimeout(refetch, 60000);
+        };
+        refetch();
     };
 
     public parseBuild(buffer:any)

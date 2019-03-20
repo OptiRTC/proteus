@@ -56,6 +56,7 @@ export class Artifacts implements TransportClient
             case SystemChannels.STORAGE:
                 let store = new Storage();
                 this.stores.push(store);
+                console.log("Storage Allocated for " + message.address);
                 this.transport.sendMessage(
                     Partitions.ADAPTER,
                     AdapterChannels.STORAGEREADY,

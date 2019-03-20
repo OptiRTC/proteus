@@ -15,6 +15,7 @@ export class Result implements Transportable
     public classname:string;
     public status:TestStatus;
     public assertions:number;
+    public started:number;
     public finished:number;
     public messages:string[]
 
@@ -33,6 +34,7 @@ export class Result implements Transportable
             classname: this.classname,
             status: this.status,
             assertions: this.assertions,
+            started: this.started,
             finished: this.finished,
             messages: this.messages
         };
@@ -44,6 +46,7 @@ export class Result implements Transportable
         this.classname = content.classname;
         this.status = <TestStatus> content.status;
         this.assertions = content.assertions;
+        this.started = content.started;
         this.finished = content.finished;
         this.messages = content.messages;
         return this;
@@ -86,9 +89,11 @@ export class TestCaseResults extends UniqueID implements Transportable
         for(let name of skipped_names)
         {
             let res = new Result();
-            res.classname = res.name = name;
+            res.name = name;
+            res.classname = this.task.test.scenario;
             res.status = TestStatus.SKIPPED;
             res.assertions = 0;
+            res.started = this.task.started;
             res.finished = new Date().getTime();
             res.messages = [];
             this.skipped.push(res);

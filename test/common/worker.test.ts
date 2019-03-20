@@ -13,10 +13,19 @@ test('Responds to heartbeat', () =>{
 	expect(worker.heartbeat).toBeGreaterThan(0);
 });
 
+test('Worker becomes online after discovery', () => {
+	let transport = new MessageTransport();
+	let worker = new Worker("0", "default", Platforms.ELECTRON, transport);
+	expect(worker.state).toEqual(WorkerState.OFFLINE);
+	transport.sendMessage(Partitions.WORKERS, WorkerChannels.CONFIG, worker.id, {'pool_id': 'default'});
+	expect(worker.state).toEqual(WorkerState.IDLE);
+});
+
 test('Heartbeat elapse sets offline status', () =>{
 	let transport = new MessageTransport();
 	let worker = new Worker("0", "default", Platforms.ELECTRON, transport);
-	expect(worker.state).toEqual(WorkerState.IDLE);
+	transport.sendMessage(Partitions.WORKERS, WorkerChannels.CONFIG, worker.id, {'pool_id': 'default'});
+	expect(worker.states.toEqual(WorkerState.IDLE));
 	worker.checkHeartbeat();
 	expect(worker.state).toEqual(WorkerState.OFFLINE);
 });
@@ -24,7 +33,7 @@ test('Heartbeat elapse sets offline status', () =>{
 test('Responds to status', () =>{
 	let transport = new MessageTransport();
 	let worker = new Worker("0", "default", Platforms.ELECTRON, transport);
-	expect(worker.state).toEqual(WorkerState.IDLE);
+	expect(worker.state).toEqual(WorkerState.OFFLINE);
 	transport.sendMessage(Partitions.WORKERS, WorkerChannels.STATUS, worker.id, { 'state': WorkerState.BUSY });
 	transport.processAll();
 	expect(worker.state).toEqual(WorkerState.BUSY);

@@ -26,6 +26,7 @@ export class Adapter extends UniqueID implements TransportClient
     public startJob()
     {
         // First request storage, do any extraction
+        console.log(this.id + " requesting storage");
         this.transport.sendMessage(
             Partitions.SYSTEM,
             SystemChannels.STORAGE,

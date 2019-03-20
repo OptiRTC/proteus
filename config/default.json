@@ -3,15 +3,15 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "",
+        "Account": "", 
         "Project": "",
         "Token": "",
         "PollIntervalSec": 300
     },
     "Core" : {
-        "MessageServer": "mqtt://proteus.localdomain",
+        "MessageServer": "mqtt://localhost",
         "MessagePort": 1883,
-        "FileServer": "proteus.localdomain",
+        "FileServer": "localhost",
         "FilePort": 3000
     },
     "Worker": {

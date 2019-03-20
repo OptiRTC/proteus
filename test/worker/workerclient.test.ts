@@ -2,7 +2,7 @@ import { Message, MessageTransport, TransportClient } from 'common/messagetransp
 import { WorkerClient } from 'worker/workerclient';
 import { Partitions, WorkerChannels, TaskChannels } from 'common/protocol';
 import { Artifacts } from 'common/artifacts';
-
+import * as ncp from 'ncp';
 
 test('Loads config', () => {
     let transport = new MessageTransport();
@@ -31,7 +31,16 @@ test('Handles passing scenario', done => {
     transport.subscribe(listener, Partitions.TASKS, TaskChannels.RESULT, null);
     let client = new WorkerClient(transport);
     let interval;
-    store.copyFrom('worker/store').then(() => {
+    new Promise((resolve, reject) => {
+        ncp('worker/store', store.path, { clobber: true}, (err) => {
+            if (!err)
+            {
+                resolve();
+            } else {
+                reject();
+            }
+        });
+    }).then(() => {
         transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.TASK,
@@ -50,7 +59,6 @@ test('Handles passing scenario', done => {
                 },
                 timestamp: new Date().getTime(),
             });
-        client.
         transport.processAll();
         interval = setInterval(() => {
             transport.process();
@@ -79,7 +87,7 @@ test('Handles failed scenario', done => {
     transport.subscribe(listener, Partitions.TASKS, TaskChannels.RESULT, null);
     let client = new WorkerClient(transport);
     let interval;
-    store.copyFrom('worker/store').then(() => {
+    ncp('worker/store', store.path, (err) => {
         transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.TASK,

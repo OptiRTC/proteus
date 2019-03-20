@@ -1,4 +1,4 @@
-import { TmpStorage } from 'common/storage';
+import { Storage } from 'common/storage';
 import { FileChangeAdapter } from 'core/filechangeadapter';
 import { Message, TransportClient, MessageTransport } from 'common/messagetransport';
 import { Partitions, SystemChannels } from 'common/protocol';
@@ -22,8 +22,8 @@ test('changed file triggers STORAGE request', done => {
 	let transport = new MessageTransport();
 	let listener = new StorageListener();
 	transport.subscribe(listener, Partitions.SYSTEM, null, null);
-	let buildstore = new TmpStorage();
-	let resultstore = new TmpStorage();
+	let buildstore = new Storage();
+	let resultstore = new Storage();
 	let adapter = new FileChangeAdapter(
 		transport,
 		buildstore.path,

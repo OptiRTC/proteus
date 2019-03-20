@@ -162,6 +162,7 @@ test('Task Dispatch', () => {
     expect(pool.queueSize()).toBe(3);
     expect(pool.activeCount()).toBe(0);
     pool.process(); // Set task, push task message
+    pool.process(); // Task ACCEPT
     expect(pool.queueSize()).toBe(2);
     expect(pool.activeCount()).toBe(1);
     pool.process(); // No idle workers, noop

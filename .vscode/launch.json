@@ -87,6 +87,17 @@
         "protocol": "inspector",
         "internalConsoleOptions": "neverOpen",
         "port": 9229
+      },
+      {
+        "name": "Remote-Core",
+        "type": "node",
+        "request": "attach",
+        "address": "proteustestcore.local",
+        //"localRoot": "${workspaceFolder}",
+        //"remoteRoot": "/home/proteus/proteus",
+        "protocol": "inspector",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
       }
 
     ]
