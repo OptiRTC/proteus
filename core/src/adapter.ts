@@ -98,4 +98,12 @@ export class Adapter extends UniqueID implements TransportClient
         // Check CI, Filesystem, etc
         // Noop here
     };
+
+    public statusPayload()
+    {
+        let payload = {
+            name: this.name
+        };
+        return payload;
+    }
 }

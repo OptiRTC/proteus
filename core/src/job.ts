@@ -97,7 +97,22 @@ export class Job extends UniqueID implements TransportClient
             this.transport.unsubscribe(this, Partitions.TASKS, TaskChannels.RESULT, result.task.id);
             this.results.push(result);
         }
-
+        console.log("Job " + this.id + " ("+ this.platforms +") "+ this.results.length + "/" + this.tasks.length);
+        for(let task of this.tasks)
+        {
+            let found = false;
+            for(let res of this.results)
+            {
+                if (res.task.test.name == task.test.name)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                console.log("Pending: " + task.test.name);
+            }
+        }
         if (this.results.length == this.tasks.length)
         {
             this.finished = true;
@@ -136,10 +151,40 @@ export class Job extends UniqueID implements TransportClient
 
     public logResults()
     {
+        console.log(`${this.id} sending results to ${this.adapter_id}`);
         this.transport.sendMessage(
             Partitions.ADAPTER,
             AdapterChannels.RESULT,
             this.adapter_id,
             this.results);
+    };
+
+    public statusPayload()
+    {
+        let payload = {
+            "finished": this.finished,
+            "build": this.build,
+            "adapter_id": this.adapter_id,
+            "platforms": this.platforms,
+            "pool_id": this.pool_id,
+            "storage_id": this.storage_id,
+            "tests": this.tests,
+            tasks: [],
+            results: []
+        };
+
+        console.log(`Job ${this.id} Build: ${this.build}`);
+
+        for(let task of this.tasks)
+        {
+            payload.tasks.push(task.toJSON());
+        }
+        
+        for(let result of this.results)
+        {
+            payload.results.push(result.toJSON());
+        }
+
+        return payload;
     };
 };

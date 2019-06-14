@@ -17,7 +17,8 @@ export enum WorkerChannels {
 	QUERY = "query",
 	ACCEPT = "accept",
 	REJECT = "reject",
-	ABORT = "abort"
+	ABORT = "abort",
+	ERROR = "error"
 };
 
 export enum JobChannels {
@@ -54,5 +55,6 @@ export enum SystemChannels {
 	RELEASESTORAGE = "releasestorage",
 	QUERY = "query",
 	INFO = "info",
-	START = "start"
+	START = "start",
+	STATUS = "status"
 };

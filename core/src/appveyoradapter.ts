@@ -87,11 +87,11 @@ class junit
                 suite.ele(
                     'testcase',
                     {
-                        name: test.name,
+                        name: test.name || "undefined test",
                         assertions: test.assertions || 0,
-                        time: (test.finished - last),
-                        classname: testclass_name,
-                        status: test.status
+                        time: (test.finished - last) || 0,
+                        classname: testclass_name || "undefined class",
+                        status: test.status || "failed"
                     }).ele('failure', JSON.stringify(failures));
                 last = test.finished;
             }
@@ -127,7 +127,7 @@ export class AppveyorAdapter extends Adapter
         super(transport, "Appveyor");
         this.build = null;
         this.account_name = get('Appveyor.Account');
-        this.project_slug = get ('Appveyor.Project');
+        this.project_slug = get('Appveyor.Project');
         this.token = get('Appveyor.Token');
         this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
         this.poll_timer = 0;
@@ -146,6 +146,7 @@ export class AppveyorAdapter extends Adapter
         let file = "/tmp/results_" + results[0].task.build + ".xml";
         console.log(junitxml.xmlString());
         junitxml.writeFile(file);
+        console.log(`Got results for ${results[0].task.build}`);
         this.appveyorUpload("api/testresults/junit/" + results[0].task.build, file)
         .then((res) => {
             try {
@@ -153,6 +154,7 @@ export class AppveyorAdapter extends Adapter
             } catch(e) {
                 // NOOP
             }
+            console.log("Upload finished");
         })
         .catch((err) => {
             try {
@@ -160,7 +162,7 @@ export class AppveyorAdapter extends Adapter
             } catch(e) {
                 // NOOP
             }
-            
+            console.log("Upload failed");
         });
     };
 

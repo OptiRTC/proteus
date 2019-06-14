@@ -1,5 +1,7 @@
 export enum Platforms {
     ELECTRON="electron",
+};
+/*
     PHOTON="photon",
     BORON="boron",
     ARGON="argon",
@@ -7,3 +9,4 @@ export enum Platforms {
     x86="x86",
     x86_64="x86_64"
 };
+*/

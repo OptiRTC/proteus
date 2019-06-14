@@ -8,6 +8,7 @@ import { Result, TestStatus, TestCaseResults } from "common/result";
 export enum TaskStatus
 {
     NONE = "None",
+    PENDING = "Pending",
     RUNNING = "Running",
     PASSED = "Passed",
     FAILED = "Failed",
@@ -31,7 +32,6 @@ export class Task extends UniqueID implements Transportable
     public timestamp:number;
     public started:number;
     public status:TaskStatus;
-
 
     constructor(content?:any)
     {

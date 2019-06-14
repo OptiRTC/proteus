@@ -92,7 +92,7 @@
         "name": "Remote-Core",
         "type": "node",
         "request": "attach",
-        "address": "proteustestcore.local",
+        "address": "proteus.localdomain",
         //"localRoot": "${workspaceFolder}",
         //"remoteRoot": "/home/proteus/proteus",
         "protocol": "inspector",

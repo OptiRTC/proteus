@@ -16,6 +16,7 @@ export class ProteusCore implements TransportClient
     protected default_tests:TestComponent[];
     protected adapters:Adapter[];
     protected artifacts:Artifacts;
+    protected status_interval:any;
 
     constructor(public transport:MessageTransport)
     {
@@ -29,6 +30,7 @@ export class ProteusCore implements TransportClient
         this.artifacts = new Artifacts(transport);
         this.createPool("default");
         this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.START, null, {status: "Core Up"});
+        this.status_interval = setInterval(() => this.sendStatus(), 15000);
     };
 
     public onMessage(message:Message)
@@ -195,5 +197,47 @@ export class ProteusCore implements TransportClient
     public close()
     {
         this.artifacts.close();
-    }
+    };
+
+    public statusPayload()
+    {
+        let payload = {
+            artifacts: [],
+            adapters: [],
+            default_tests: this.default_tests,
+            default_platforms: this.default_platforms,
+            default_pool: this.default_pool,
+            jobs: [],
+            pools: []
+            
+        };
+
+        console.log(`Defaults POOL: ${this.default_pool}, PLATFORM: ${this.default_platforms}, TESTS: ${this.default_tests}`);
+
+        for(let job of this.jobs)
+        {
+            payload.jobs.push(job.statusPayload());
+        }
+
+        for(let adapter of this.adapters)
+        {
+            payload.adapters.push(adapter.statusPayload());
+        }
+
+        for(let pool of this.pools)
+        {
+            payload.pools.push(pool.statusPayload());
+        }
+        return payload;
+    };
+
+    public sendStatus()
+    {
+        let payload = this.statusPayload();
+        this.transport.sendMessage(
+            Partitions.SYSTEM,
+            SystemChannels.STATUS,
+            null,
+            payload);
+    };
 };

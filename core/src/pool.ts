@@ -10,6 +10,7 @@ export class Pool implements TransportClient
     protected pending_tasks:Task[];
     protected query_timer:number;
     protected query_interval:number;
+    protected PENDING_TIMEOUT:number;
     public workers:Worker[];
 
     constructor(
@@ -17,6 +18,7 @@ export class Pool implements TransportClient
         public transport:MessageTransport,
         public limit:number)
     {
+        this.PENDING_TIMEOUT = 15000;
         this.transport.subscribe(
             this,
             Partitions.POOLS,
@@ -139,11 +141,13 @@ export class Pool implements TransportClient
                 // Check that worker still belongs to us
                 // otherwise remove
                 {
+                    let worker = null;
                     let index = this.workers.findIndex((w) => w.id == message.address);
                     if (typeof(message.content.pool_id) != 'undefined')
                     {
                         if (index != -1)
                         {
+                            worker = this.workers[index];
                             if(message.content.pool_id != this.id)
                             {
                                 this.removeWorker(this.workers[index]);
@@ -153,6 +157,23 @@ export class Pool implements TransportClient
                             {
                                 this.discoverWorker(message);
                             }
+                        }
+                    }
+                    if (worker == null)
+                    {
+                        break;
+                    }
+                    // If Worker has active tasks and isn't busy
+                    // this might happen if a worker resets in the middle of a job
+                    if (worker.state != WorkerState.BUSY)
+                    {
+                        index = this.active_tasks.findIndex((task) => task.worker_id == worker.id);
+                        if (index != -1)
+                        {
+                            let task = this.active_tasks[index];
+                            task.worker_id = null;
+                            this.queued_tasks.push(task);
+                            this.active_tasks.splice(index, 1);
                         }
                     }
                 }
@@ -186,6 +207,12 @@ export class Pool implements TransportClient
                     {
                         this.queued_tasks.push(this.pending_tasks[index]);
                         this.pending_tasks.splice(index, 1);
+                    }
+                    index = this.active_tasks.findIndex((task) => task.id == message.content.task_id);
+                    if (index != -1)
+                    {
+                        this.queued_tasks.push(this.active_tasks[index]);
+                        this.active_tasks.splice(index, 1);
                     }
                 }
                 break;
@@ -318,9 +345,39 @@ export class Pool implements TransportClient
                 {
                     continue;
                 }
+
                 worker.setTask(task);
                 this.pending_tasks.push(task);
+                setTimeout(() => {
+                    let index = this.pending_tasks.findIndex((what) => what.id == task.id);
+                    if(index != -1)
+                    {
+                        worker.error();
+                        this.queued_tasks.push(this.pending_tasks[index]);
+                        this.pending_tasks.splice(index, 1);
+                    } 
+                }, this.PENDING_TIMEOUT);
             }
         }
+    };
+
+    public statusPayload()
+    {
+        let payload = {
+            queued_tasks: this.queued_tasks,
+            active_tasks: this.active_tasks,
+            pending_tasks: this.pending_tasks,
+            id: this.id,
+            workers: []
+        };
+
+        console.log(`Pool ${this.id} Queued: ${this.queued_tasks.length} Pending: ${this.pending_tasks.length} Active: ${this.active_tasks.length}`);
+
+        for(let worker of this.workers)
+        {
+            payload.workers.push(worker.statusPayload());
+        }
+
+        return payload;
     };
 };
