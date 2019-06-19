@@ -1,4 +1,4 @@
-import {Task} from "common/task";
+import {Task, TaskStatus} from "common/task";
 import {MessageTransport, Message, TransportClient} from "common/messagetransport";
 import { Partitions, WorkerChannels} from "common/protocol";
 import { Platforms } from "common/platforms";
@@ -73,6 +73,7 @@ export class Worker implements TransportClient
     {
         this.state = WorkerState.TASKED;
         this.task = task;
+        task.status = TaskStatus.PENDING;
         this.task.started = new Date().getTime();
         this.task.worker_id = this.id;
         this.transport.sendMessage(
@@ -112,8 +113,11 @@ export class Worker implements TransportClient
            platform: this.platform,
            error_count: this.error_count
         };
-
-        console.log(`Worker ${this.id} Pool: ${this.pool_id}, Platform: ${this.platform}, Errors: ${this.error_count}, State: ${this.state}, Heartbeat: ${this.heartbeat}, Task: ${this.task || 'None'}`);
+        console.log(`Worker ${this.id} Pool: ${this.pool_id}, Platform: ${this.platform}, Errors: ${this.error_count}, State: ${this.state}, Heartbeat: ${this.heartbeat}`);
+        if (typeof(this.task) != "undefined" && this.task != null)
+        {
+            console.log(this.task.test.name);
+        }
 
         return payload;
     };

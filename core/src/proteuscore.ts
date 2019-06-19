@@ -233,11 +233,11 @@ export class ProteusCore implements TransportClient
 
     public sendStatus()
     {
-        let payload = this.statusPayload();
-        this.transport.sendMessage(
+        this.statusPayload();
+        /*this.transport.sendMessage(
             Partitions.SYSTEM,
             SystemChannels.STATUS,
             null,
-            payload);
+            payload);*/
     };
 };

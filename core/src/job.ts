@@ -26,6 +26,7 @@ export class Job extends UniqueID implements TransportClient
         this.tasks = [];
         this.results = [];
         this.transport.subscribe(this, Partitions.JOBS, null, this.id);
+        this.transport.subscribe(this, Partitions.POOLS, PoolChannels.RESULT, this.pool_id);
         this.finished = false;
     };
 
@@ -35,9 +36,9 @@ export class Job extends UniqueID implements TransportClient
         {
             this.handleJobMessage(message);
         }
-        if (message.partition == Partitions.TASKS)
+        if (message.partition == Partitions.POOLS)
         {
-            this.handleTaskMessage(message)
+            this.handlePoolMessage(message)
         }
     };
 
@@ -55,10 +56,10 @@ export class Job extends UniqueID implements TransportClient
                     pool_id: this.pool_id,
                     storage_id: this.storage_id,
                     test: test.toJSON()});
-                this.transport.subscribe(this, Partitions.TASKS, TaskChannels.RESULT, task.id);
                 this.tasks.push(task);
             }
         }
+
         this.transport.sendMessage(
             Partitions.POOLS,
             PoolChannels.TASK,
@@ -79,9 +80,9 @@ export class Job extends UniqueID implements TransportClient
         }
     };
 
-    protected handleTaskMessage(message:Message)
+    protected handlePoolMessage(message:Message)
     {
-        if (message.channel == TaskChannels.RESULT)
+        if (message.channel == PoolChannels.RESULT)
         {
             let result = new TestCaseResults(message.content);
             result.populateSkipped();
@@ -98,6 +99,7 @@ export class Job extends UniqueID implements TransportClient
             this.results.push(result);
         }
         console.log("Job " + this.id + " ("+ this.platforms +") "+ this.results.length + "/" + this.tasks.length);
+        let pending = 0;
         for(let task of this.tasks)
         {
             let found = false;
@@ -111,9 +113,10 @@ export class Job extends UniqueID implements TransportClient
             if (!found)
             {
                 console.log("Pending: " + task.test.name);
+                pending += 1;
             }
         }
-        if (this.results.length == this.tasks.length)
+        if (pending == 0)
         {
             this.finished = true;
             this.logResults();
@@ -146,7 +149,7 @@ export class Job extends UniqueID implements TransportClient
 
     public isFinished(): boolean
     {
-        return this.finished;
+        return this.finished || this.tasks.length < 1;
     };
 
     public logResults()
@@ -173,16 +176,38 @@ export class Job extends UniqueID implements TransportClient
             results: []
         };
 
-        console.log(`Job ${this.id} Build: ${this.build}`);
+        console.log(`Job ${this.id} Build: ${this.build} Progress ${this.results.length} / ${this.tasks.length}`);
 
         for(let task of this.tasks)
         {
             payload.tasks.push(task.toJSON());
         }
+
+        console.log("Results:");
         
         for(let result of this.results)
         {
-            payload.results.push(result.toJSON());
+            payload.results.push(result.statusPayload());
+        }
+
+        console.log("Job awaiting:");
+
+        for(let task of this.tasks)
+        {
+            let found = false;
+            for(let res of this.results)
+            {
+                if (res.task.test.name == task.test.name)
+                {
+                    found = true;
+                }
+            }
+            if (!found)
+            {
+                console.log("Pending: " + task.test.name);
+            } else {
+                console.log("Finished: " + task.test.name);
+            }
         }
 
         return payload;

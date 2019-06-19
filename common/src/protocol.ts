@@ -40,7 +40,8 @@ export enum TaskChannels {
 export enum PoolChannels {
 	STATUS = "status",
 	QUERY = "query",
-	TASK = "task"
+	TASK = "task",
+	RESULT = "result",
 };
 
 export enum AdapterChannels {

@@ -32,11 +32,13 @@ export class Task extends UniqueID implements Transportable
     public timestamp:number;
     public started:number;
     public status:TaskStatus;
+    public error_count:number;
 
     constructor(content?:any)
     {
         super();
         this.status = TaskStatus.NONE;
+        this.error_count = 0;
         if (content)
         {
             this.fromJSON(content);
@@ -89,6 +91,7 @@ export class Task extends UniqueID implements Transportable
             storage_id: this.storage_id,
             started: this.started,
             timestamp: this.timestamp,
+            error_count: this.error_count,
             test: this.test.toJSON()
         };
     };
@@ -108,6 +111,7 @@ export class Task extends UniqueID implements Transportable
         this.storage_id = typeof(content.storage_id) == 'undefined' ? null : content.storage_id;
         this.started = typeof(content.started) == 'undefined' ? null : content.started;
         this.timestamp = typeof(content.timestamp) == 'undefined' ? new Date().getTime() : content.timestamp;
+        this.error_count = typeof(content.timestamp) == 'undefined' ? 0 : content.error_count;
         return this;
     };
 };

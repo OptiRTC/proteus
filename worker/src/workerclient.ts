@@ -82,12 +82,15 @@ export class WorkerClient extends Worker
                                 worker_id: get('Worker.id'),
                                 timestamp: new Date().getTime(),
                                 task: this.task,
-                                failed: [new Result({
-                                    name: message.content.name,
-                                    classname: message.content.name,
-                                    status: TestStatus.FAILED,
-                                    messages: [e]})
-                                ]
+                                failed: task.test.expectations.map((item) => {
+                                    new Result({
+                                        name: item,
+                                        classname: test.scenario,
+                                        started: new Date().getTime(),
+                                        finished: new Date().getTime(),
+                                        status: TestStatus.FAILED,
+                                        messages: [e]})
+                                    })
                             });
                         }).finally(() => {
                             console.log("Task Finished", this.task.id);
@@ -100,7 +103,7 @@ export class WorkerClient extends Worker
                     .catch((e) => {
                         console.log(e);
                     })
-                    .finally(() => this.resetState());
+                    .finally(() => setTimeout(() => this.resetState(), 5000);
                 break;
             case WorkerChannels.CONFIG:
                 console.log("Discovery Finished");
@@ -153,7 +156,10 @@ export class WorkerClient extends Worker
             Partitions.WORKERS,
             WorkerChannels.STATUS,
             this.id,
-            {state: this.state});
+            {
+                state: this.state,
+                task_name: this.test.task.name
+            });
     };
 
     public sendHeartbeat()
@@ -181,6 +187,7 @@ export class WorkerClient extends Worker
                 try {
                     let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
                     let scenario = null;
+                    console.log("Loading scenario " + scenario_file);
                     if (typeof __non_webpack_require__ != "undefined")
                     {
                         delete __non_webpack_require__.cache[__non_webpack_require__.resolve(scenario_file)];
@@ -189,8 +196,11 @@ export class WorkerClient extends Worker
                         delete require.cache[require.resolve(scenario_file)];
                         scenario = require(scenario_file).scenario;
                     }
+                    console.log("Starting test" + test.name);
+                    console.log(JSON.stringify(test.metadata));
                     scenario.run(test.metadata)
                     .then((results) => {
+                        console.log("Test Finished Successfully");
                         results = results.map((item) => new Result(item));
                         resolve(new TestCaseResults({
                             worker_id: get('Worker.id'),
@@ -199,6 +209,7 @@ export class WorkerClient extends Worker
                             failed: results.filter((r) => r.status == TestStatus.FAILED)
                         }));
                     }).catch((e) => {
+                        console.log("Test Error");
                         resolve(new TestCaseResults({
                             worker_id: get('Worker.id'),
                             timestamp: new Date().getTime(),
@@ -216,10 +227,11 @@ export class WorkerClient extends Worker
                         clearTimeout(rejectTimeout);
                     });
                 } catch (e) {
+                    console.log("Uncaught Error " + e);
                     reject(e);
                 }
             } else {
-                reject("Scenario not found");
+                reject("Not sure how to execute " + JSON.stringify(test));
             }
         });
     };
@@ -239,6 +251,7 @@ export class WorkerClient extends Worker
                     if (err != null ||
                         res.statusCode != 200)
                     {
+                        console.log("File Sync Error");
                         reject(err);
                         return;
                     }
@@ -248,12 +261,14 @@ export class WorkerClient extends Worker
                         let zip = new AdmZip(targetFile);
                         zip.extractAllTo(this.local_storage.path, true);
                     } catch(e) {
+                        console.log("UnZip/Extract Failure");
                         reject(e);
                         return;
                     }
                     resolve();
                 });
             } catch(e) {
+                console.log("Fetch Error");
                 reject(e);
             }
         });

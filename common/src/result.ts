@@ -132,4 +132,41 @@ export class TestCaseResults extends UniqueID implements Transportable
         this.timestamp = content.timestamp;
         return this;
     };
+
+    public statusPayload()
+    {
+        let payload = {
+            skipped: [],
+            timestamp: this.timestamp,
+            worker_id: this.worker_id,
+            passing: [],
+            failed:[],
+            task: this.task.toJSON()
+        };
+
+        console.log(this.task.test.name);
+
+        for(let result of this.skipped)
+        {
+            let json = result.toJSON()
+            //console.log("Skipped: " + json.name);
+            payload.skipped.push(json);
+        }
+
+        for(let result of this.failed)
+        {
+            let json = result.toJSON()
+            //console.log("Fail: " + json.name);
+            payload.failed.push(json);
+        }
+
+        for(let result of this.passing)
+        {
+            let json = result.toJSON()
+            //console.log("Pass: " + json.name);
+            payload.passing.push(json);
+        }
+
+        return payload;
+    };
 };

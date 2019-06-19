@@ -147,6 +147,7 @@ export class AppveyorAdapter extends Adapter
         console.log(junitxml.xmlString());
         junitxml.writeFile(file);
         console.log(`Got results for ${results[0].task.build}`);
+        https://ci.appveyor.com/api/testresults/{resultsType}/{jobId}
         this.appveyorUpload("api/testresults/junit/" + results[0].task.build, file)
         .then((res) => {
             try {

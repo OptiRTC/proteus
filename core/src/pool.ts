@@ -2,12 +2,11 @@ import {TaskStatus, Task} from "common/task";
 import {WorkerState, Worker} from "common/worker";
 import {Partitions, WorkerChannels, PoolChannels, TaskChannels } from "common/protocol";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON } from "common/messagetransport";
+import {TestCaseResults} from "common/result";
 
 export class Pool implements TransportClient
 {
-    protected queued_tasks:Task[];
-    protected active_tasks:Task[];
-    protected pending_tasks:Task[];
+    protected tasks:Task[];
     protected query_timer:number;
     protected query_interval:number;
     protected PENDING_TIMEOUT:number;
@@ -39,9 +38,7 @@ export class Pool implements TransportClient
             Partitions.TASKS,
             TaskChannels.ABORT,
             null);
-        this.queued_tasks = [];
-        this.active_tasks = [];
-        this.pending_tasks = [];
+        this.tasks = [];
         this.workers = [];
         this.query_timer = new Date().getTime();
         this.query_interval = 180000;
@@ -67,30 +64,30 @@ export class Pool implements TransportClient
 
     public handleTaskMessage(message:Message)
     {
+        let task = this.tasks.find((t) => t.id == message.address);
         switch(message.channel)
         {
             case TaskChannels.ABORT:
                 {
-                    let index = this.queued_tasks.findIndex((task) => task.id == message.address);
-                    if (index != -1)
+                    if (typeof(task) != "undefined")
                     {
-                        this.queued_tasks.splice(index, 1);
-                    }
-                }
-                {
-                    let index = this.active_tasks.findIndex((task)=> task.id == message.address);
-                    if (index != -1)
-                    {
-                        this.active_tasks.splice(index, 1);
+                        task.status = TaskStatus.PENDING;
+                        task.error_count += 1;
                     }
                 }
                 break;
             case TaskChannels.RESULT:
                 {
-                    let index = this.active_tasks.findIndex((task)=> task.id == message.address);
-                    if (index != -1)
+                    if (typeof(task) != "undefined")
                     {
-                        this.active_tasks.splice(index, 1);
+                        let result = new TestCaseResults(message.content);
+                        task.status = result.failed.length > 0 ? TaskStatus.FAILED : TaskStatus.PASSED;
+                        this.transport.sendMessage(
+                            Partitions.POOLS,
+                            PoolChannels.RESULT,
+                            this.id,
+                            result.toJSON()
+                        );
                     }
                 }
                 break;
@@ -109,9 +106,9 @@ export class Pool implements TransportClient
                     PoolChannels.STATUS,
                     this.id,
                     {
-                        pending_task_count: this.pending_tasks.length,
-                        active_task_count: this.active_tasks.length,
-                        queued_task_count: this.queued_tasks.length,
+                        pending_task_count: this.pendingCount(),
+                        active_task_count: this.activeCount(),
+                        queued_task_count: this.queuedCount(),
                         workers: this.workers.map((worker:Worker) => {
                             return {
                                 id: worker.id,
@@ -167,13 +164,12 @@ export class Pool implements TransportClient
                     // this might happen if a worker resets in the middle of a job
                     if (worker.state != WorkerState.BUSY)
                     {
-                        index = this.active_tasks.findIndex((task) => task.worker_id == worker.id);
+                        let index = this.tasks.findIndex((task) => (task.worker_id == worker.id) && (task.status == TaskStatus.RUNNING));
                         if (index != -1)
                         {
-                            let task = this.active_tasks[index];
+                            let task = this.tasks[index];
                             task.worker_id = null;
-                            this.queued_tasks.push(task);
-                            this.active_tasks.splice(index, 1);
+                            task.status = TaskStatus.NONE;
                         }
                     }
                 }
@@ -181,15 +177,9 @@ export class Pool implements TransportClient
             case WorkerChannels.ACCEPT:
                 // Move task from pending to active
                 {
-                    let task = null;
-                    let index = this.pending_tasks.findIndex((task) => task.id == message.content.task_id);
-                    if (index != -1)
+                    let task = this.tasks.find((task) => task.id == message.content.task_id);
+                    if (typeof(task) != "undefined")
                     {
-                        task = this.pending_tasks[index];
-                        this.active_tasks.push(task);
-                        this.pending_tasks.splice(index, 1);
-                    }
-                    if (task != null) {
                         task.status = TaskStatus.RUNNING;
                         this.transport.sendMessage(
                             Partitions.TASKS,
@@ -202,17 +192,10 @@ export class Pool implements TransportClient
             case WorkerChannels.REJECT:
                 // Move task back into queue
                 {
-                    let index = this.pending_tasks.findIndex((task) => task.id == message.content.task_id);
-                    if (index != -1)
+                    let task = this.tasks.find((task) => task.id == message.content.task_id);
+                    if (typeof(task) != "undefined")
                     {
-                        this.queued_tasks.push(this.pending_tasks[index]);
-                        this.pending_tasks.splice(index, 1);
-                    }
-                    index = this.active_tasks.findIndex((task) => task.id == message.content.task_id);
-                    if (index != -1)
-                    {
-                        this.queued_tasks.push(this.active_tasks[index]);
-                        this.active_tasks.splice(index, 1);
+                        task.status = TaskStatus.NONE;
                     }
                 }
                 break;
@@ -229,27 +212,14 @@ export class Pool implements TransportClient
             if (worker.id == message.address)
             {
                 selected_worker = worker;
-                let rejected = [];
-                this.active_tasks = this.active_tasks.filter((task) =>
-                {
+                this.tasks.forEach((task) => {
                     if (task.worker_id == worker.id)
                     {
-                        rejected.push(task);
-                        return false;
+                        worker.error();
+                        task.error_count += 1;
+                        task.status = TaskStatus.NONE;
                     }
-                    return true;
                 });
-                this.queued_tasks.concat(rejected);
-                rejected = [];
-                this.pending_tasks = this.pending_tasks.filter((task) => {
-                    if (task.worker_id == worker.id)
-                    {
-                        rejected.push(task);
-                        return false;
-                    }
-                    return true;
-                });
-                this.queued_tasks.concat(rejected);
                 break;
             }
         }
@@ -298,30 +268,29 @@ export class Pool implements TransportClient
         for(let task of tasks)
         {
             task.pool_id = this.id;
+            task.status = TaskStatus.NONE;
         }
-        this.queued_tasks = this.queued_tasks.concat(tasks);
+        this.tasks = this.tasks.concat(tasks);
     };
 
     public getPlatformTask(worker:Worker):Task
     {
-        let index = this.queued_tasks.findIndex((t)=> t.platform == worker.platform);
-        if (index == -1)
-        {
-            return null;
-        }
-        let task = this.queued_tasks[index];
-        this.queued_tasks.splice(index, 1);
-        return task;
+        return this.tasks.find((t)=> t.platform == worker.platform && t.status == TaskStatus.NONE);
     };
 
-    public queueSize():number
+    public queuedCount():number
     {
-        return this.queued_tasks.length;
+        return this.tasks.filter((task) => task.status == TaskStatus.NONE).length;
+    };
+
+    public pendingCount(): number
+    {
+        return this.tasks.filter((task) => task.status == TaskStatus.PENDING).length;
     };
 
     public activeCount():number
     {
-        return this.active_tasks.length;
+        return this.tasks.filter((task) => task.status == TaskStatus.RUNNING).length;
     };
 
     public process()
@@ -341,37 +310,37 @@ export class Pool implements TransportClient
             if (worker.state == WorkerState.IDLE)
             {
                 let task = this.getPlatformTask(worker);
-                if (task == null || task == undefined)
+                if (typeof(task) == "undefined")
                 {
                     continue;
                 }
 
                 worker.setTask(task);
-                this.pending_tasks.push(task);
                 setTimeout(() => {
-                    let index = this.pending_tasks.findIndex((what) => what.id == task.id);
-                    if(index != -1)
+                    let found_task = this.tasks.find((t) => t.id == task.id);
+                    if(typeof(found_task) != "undefined" && found_task.status == TaskStatus.PENDING)
                     {
                         worker.error();
-                        this.queued_tasks.push(this.pending_tasks[index]);
-                        this.pending_tasks.splice(index, 1);
+                        found_task.status = TaskStatus.NONE;
                     } 
                 }, this.PENDING_TIMEOUT);
             }
         }
+
+        this.tasks = this.tasks.filter((task) => task.status != TaskStatus.PASSED && task.status != TaskStatus.FAILED);
     };
 
     public statusPayload()
     {
         let payload = {
-            queued_tasks: this.queued_tasks,
-            active_tasks: this.active_tasks,
-            pending_tasks: this.pending_tasks,
+            queued_tasks: this.queuedCount(),
+            active_tasks: this.activeCount(),
+            pending_tasks: this.pendingCount(),
             id: this.id,
             workers: []
         };
 
-        console.log(`Pool ${this.id} Queued: ${this.queued_tasks.length} Pending: ${this.pending_tasks.length} Active: ${this.active_tasks.length}`);
+        console.log(`Pool ${this.id} Queued: ${this.queuedCount()} Pending: ${this.pendingCount()} Active: ${this.activeCount()}`);
 
         for(let worker of this.workers)
         {
