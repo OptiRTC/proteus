@@ -1,8 +1,17 @@
 {
+    "Files": {
+        "Port": 3000
+    },
+    "Appveyor": {
+        "Account": "optirtc",
+        "Project": "thunder",
+        "Token": "v2.wn9katdd52wcodyud51o",
+        "PollIntervalSec": 300
+    },
     "Core" : {
-        "MessageServer": "mqtt://proteus.localdomain",
+        "MessageServer": "mqtt://proteus-core.localdomain",
         "MessagePort": 1883,
-        "FileServer": "proteus.localdomain",
+        "FileServer": "proteus-core.localdomain",
         "FilePort": 3000
     },
     "Worker": {

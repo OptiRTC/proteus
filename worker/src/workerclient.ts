@@ -82,10 +82,10 @@ export class WorkerClient extends Worker
                                 worker_id: get('Worker.id'),
                                 timestamp: new Date().getTime(),
                                 task: this.task,
-                                failed: task.test.expectations.map((item) => {
+                                failed: this.task.test.expectations.map((item) => {
                                     new Result({
                                         name: item,
-                                        classname: test.scenario,
+                                        classname: this.task.test.scenario,
                                         started: new Date().getTime(),
                                         finished: new Date().getTime(),
                                         status: TestStatus.FAILED,
@@ -103,7 +103,7 @@ export class WorkerClient extends Worker
                     .catch((e) => {
                         console.log(e);
                     })
-                    .finally(() => setTimeout(() => this.resetState(), 5000);
+                    .finally(() => setTimeout(() => this.resetState(), 5000));
                 break;
             case WorkerChannels.CONFIG:
                 console.log("Discovery Finished");
@@ -158,7 +158,7 @@ export class WorkerClient extends Worker
             this.id,
             {
                 state: this.state,
-                task_name: this.test.task.name
+                task_name: this.task.test.name
             });
     };
 
