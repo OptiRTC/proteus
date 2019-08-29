@@ -28,10 +28,10 @@ export class Task extends UniqueID implements Transportable
     public pool_id:string;
     public storage_id:string;
     public test:TestComponent;
+    public result:Result;
     public timestamp:number;
     public started:number;
     public status:TaskStatus;
-
 
     constructor(content?:any)
     {
@@ -46,7 +46,7 @@ export class Task extends UniqueID implements Transportable
         }
     };
 
-    public abort(transport:MessageTransport)
+    public abort()
     {
         this.status = TaskStatus.CANCELLED;
         let results = [];
@@ -61,20 +61,6 @@ export class Task extends UniqueID implements Transportable
             abort_res.messages = [ "Test ABORTED" ];
             results.push(abort_res);
         }
-        transport.sendMessage(
-            Partitions.TASKS,
-            TaskChannels.ABORT,
-            this.id,
-            null);
-        transport.sendMessage(
-            Partitions.TASKS,
-            TaskChannels.RESULT,
-            this.id,
-            new TestCaseResults({
-                worker_id: 'N/A',
-                passed: [],
-                failed: results,
-                task: this}).toJSON());
     };
 
     public toJSON():any

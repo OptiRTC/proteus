@@ -31,7 +31,6 @@ export class Worker implements TransportClient
         this.task = null;
     };
 
-
     public onMessage(message:Message)
     {
         switch(message.channel)

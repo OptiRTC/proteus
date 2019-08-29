@@ -99,8 +99,14 @@ export class WorkerClient extends Worker
                         }))
                     .catch((e) => {
                         console.log(e);
+                        this.state = WorkerState.ERROR;
                     })
-                    .finally(() => this.resetState());
+                    .finally(() => {
+                        if (this.state != WorkerState.ERROR)
+                        {
+                            this.resetState();
+                        }
+                    });
                 break;
             case WorkerChannels.CONFIG:
                 console.log("Discovery Finished");
@@ -124,6 +130,10 @@ export class WorkerClient extends Worker
                 this.resetState();
                 this.sendDiscovery();
                 break;
+            case WorkerChannels.RESET:
+                {
+                    this.resetState();
+                }
             default:
                 break;
         }

@@ -13,8 +13,8 @@ export class MQTTDaemon
     {
         this.mqtt = new MQTTTransport(mqtt_ip);
         this.core = new ProteusCore(this.mqtt);
-        this.core.registerAdapter(new FileChangeAdapter(this.mqtt, '/tmp/proteus/job', '/tmp/proteus/result'));
-        this.core.registerAdapter(new AppveyorAdapter(this.mqtt));
+        this.core.registerAdapter(new FileChangeAdapter('/tmp/proteus/job', '/tmp/proteus/result', this.core));
+        this.core.registerAdapter(new AppveyorAdapter(this.core));
     
         this.active = true;
         process.on('SIGTERM', () => {

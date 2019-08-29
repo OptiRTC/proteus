@@ -1,11 +1,11 @@
 import { Adapter } from "core/adapter";
 import { readFileSync, writeFileSync } from 'fs';
-import { MessageTransport } from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { ncp } from 'ncp';
 import { Partitions, SystemChannels } from "common/protocol";
 import { watch, FSWatcher } from 'chokidar';
 import { existsSync, mkdirSync } from 'fs';
+import { ProteusCore } from "core/proteuscore";
 
 export class FileChangeAdapter extends Adapter
 {
@@ -14,11 +14,11 @@ export class FileChangeAdapter extends Adapter
     protected watcher:FSWatcher;
 
     constructor(
-        transport:MessageTransport,
         public buildpath:string,
-        public resultspath:string)
+        public resultspath:string,
+        parent:ProteusCore)
     {
-        super(transport, "Watch:" + buildpath);
+        super("Watch:" + buildpath, parent);
         this.debounce = null;
 
         if (!existsSync(this.buildpath))

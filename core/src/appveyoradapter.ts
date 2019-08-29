@@ -7,6 +7,7 @@ import AdmZip from 'adm-zip';
 import request from 'request';
 import { writeFileSync, readFileSync, createReadStream } from 'fs';
 import * as xmlbuilder from 'xmlbuilder';
+import { ProteusCore } from "proteuscore";
 
 // https://raw.githubusercontent.com/junit-team/junit5/master/platform-tests/src/test/resources/jenkins-junit.xsd
 class junit
@@ -122,9 +123,9 @@ export class AppveyorAdapter extends Adapter
     protected buildinfo:any;
 
     constructor(
-        transport:MessageTransport)
+        parent:ProteusCore)
     {
-        super(transport, "Appveyor");
+        super("Appveyor", parent);
         this.build = null;
         this.account_name = get('Appveyor.Account');
         this.project_slug = get ('Appveyor.Project');
@@ -273,8 +274,6 @@ export class AppveyorAdapter extends Adapter
                     {
                         clearTimeout(fetch_timeout);
                     }
-                    this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
-                    this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
                     console.log("Starting Appveyor job " + target_job);
                 }).catch((e) => console.log(e));
             }).catch((e) => console.log(e));

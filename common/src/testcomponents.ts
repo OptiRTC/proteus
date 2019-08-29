@@ -3,10 +3,10 @@ import { Transportable } from 'common/messagetransport';
 
 export class TestComponent implements Transportable {
     
-        public name:string; // Friendly name
-        public metadata:any; // Data to deliver to the scenario, I.E. Binary
-        public scenario:string; // The scenario file to load (may be null for uint tests)
-        public expectations:string[]; // A list of expectations (may be null for scenarios)
+    public name:string; // Friendly name
+    public metadata:any; // Data to deliver to the scenario, I.E. Binary
+    public scenario:string; // The scenario file to load (may be null for uint tests)
+    public expectations:string[]; // A list of expectations (may be null for scenarios)
 
     constructor(content?:any)
     {

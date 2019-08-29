@@ -5,29 +5,44 @@ import {Partitions, WorkerChannels, JobChannels, SystemChannels} from 'common/pr
 import {Platforms} from "common/platforms";
 import {TestComponent} from "common/testcomponents";
 import { Adapter } from "core/adapter";
-import { Artifacts } from 'common/artifacts';
+
+import { get } from "config";
+import archiver from 'archiver';
+import express from 'express';
 
 export class ProteusCore implements TransportClient
 {
+    protected adapters:Adapter[]
     protected jobs:Job[];
     protected pools:Pool[];
-    protected default_pool:Pool;
-    protected default_platforms:Platforms[];
-    protected default_tests:TestComponent[];
-    protected adapters:Adapter[];
-    protected artifacts:Artifacts;
+    protected workers:Worker[];
+    protected storage:Storage[];
+    protected file_access:any;
+    protected http_server:any;
 
     constructor(public transport:MessageTransport)
     {
-        this.transport.subscribe(this, Partitions.JOBS, null, null);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.DISCOVER, null);
         this.jobs = [];
         this.pools = [];
-        this.default_platforms = [];
-        this.default_tests = [];
         this.adapters = [];
-        this.artifacts = new Artifacts(transport);
+        this.storage = [];
         this.createPool("default");
+        this.http_server = express();
+        this.http_server.get('/:id', (req, res) =>
+        {
+            let store = this.storage.find((s) => s.id == req.params.id);
+            if (store)
+            {
+                let arch = archiver('zip', { zlib: { level: 9}});
+                arch.pipe(res);
+                arch.directory(store.path, false);
+                arch.finalize();
+            } else {
+                res.status(404).send('Not Found');
+            }
+        });
+        this.file_access = this.http_server.listen(get("Files.Port"));
         this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.START, null, {status: "Core Up"});
     };
 
@@ -35,9 +50,6 @@ export class ProteusCore implements TransportClient
     {
         switch(message.partition)
         {
-            case Partitions.JOBS:
-                this.handleJobMessage(message);
-                break;
             case Partitions.WORKERS:
                 this.handleWorkerDiscovery(message);
                 break;
@@ -54,44 +66,6 @@ export class ProteusCore implements TransportClient
             pool = message.content.pool;
         }
         this.selectPool(pool).discoverWorker(message);
-    };
-
-    public handleJobMessage(message:Message)
-    {
-        if (message.channel == JobChannels.NEW)
-        {
-            let platforms = [];
-            if (message.content.platforms != undefined)
-            {
-                // Should be an array of strings
-                for (let platform of message.content.platforms)
-                {
-                    platform = platform.toLowerCase();
-                    if (Object.values(Platforms).includes(platform))
-                    {
-                        platforms.push(platform);
-                    }
-                }
-            } else {
-                platforms = this.default_platforms;
-            }
-
-            let tests = [];
-            if (message.content.tests != undefined)
-            {
-                tests = ArrayFromJSON<TestComponent>(TestComponent, message.content.tests);
-            } else {
-                tests = this.default_tests;
-            }
-
-            this.createJob(
-                message.content.adapter_id,
-                message.content.build,
-                platforms,
-                message.content.pool_id,
-                tests,
-                message.content.store_id).start();
-        }
     };
 
     public poolCount():number
@@ -127,6 +101,7 @@ export class ProteusCore implements TransportClient
         // Prune finished jobs
         for (let job of this.jobs)
         {
+            job.process();
             if (job.isFinished())
             {
                 let index = this.jobs.indexOf(job);
@@ -168,32 +143,27 @@ export class ProteusCore implements TransportClient
         return selected_pool;
     };
 
-    protected createJob(adapter_id:string, build:string, platforms:Platforms[], poolname:string, tests:TestComponent[], store_id:string)
-    {
-        if (store_id == undefined ||
-            store_id == null)
-        {
-            store_id = this.artifacts.newStorage();
-        }
-        let job = new Job(
-            this.transport,
-            build,
-            adapter_id,
-            platforms,
-            this.selectPool(poolname).id,
-            store_id,
-            tests);
-        this.jobs.push(job);
-        return job;
-    };
-
     public registerAdapter(adapter:Adapter)
     {
         this.adapters.push(adapter);
     };
 
+    public registerJob(job:Job)
+    {
+
+    };
+
+    public registerWorker(worker:Worker)
+    {
+
+    };
+
     public close()
     {
-        this.artifacts.close();
-    }
+        this.http_server.close();
+        for(let store of this.storage)
+        {
+            store.finish();
+        }
+    };
 };

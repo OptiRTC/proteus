@@ -4,147 +4,178 @@ Workers must be initially pointed at the Core server to get appropriate configur
 API accepts JSON, and will return JSON.
 Partially implemented UI in HTML.
 
-## Core API
+## **/** (Root Domain)
+The root domain provides a html dashboard with summary information.
+System load, task throughput average, message throughput average, current queue sizes, worker status.
+It also provides links to
+- Adapter Control
+- Job Control
+- Pool Control
+- Worker Control
+- Task Control
+- System Control
 
-### workers
-**/workers**
-Will give a list of all current workers, their status, and job IDs assigned to them.
+## **/adapters**
+A html dashboard or json array of all adapters. Allows drill-down into a specific adapter.
+Adapter data model:
+```
+{
+	adapter_name: string,
+	adapter_config: {},
+	enabled: boolean,
+	total_jobs: int,
+	average_jobs: int,
+	reserved_storage: [storage],
+	queued_jobs: [job],
+	active_jobs: [job],
+	finished_jobs: [job]
+}
+```
+### **/adapters/`id`**
+The html dashboard or json blob for a specific adapter. html dashboard displays
+- Total Jobs
+- Average Jobs/day
+- Active storage elements
+- List of Queued Jobs
+- List of Active Jobs
+- List of Finished Jobs
 
+### **/adapters/`id`/enable**
+Enables or disables an adapter when posted to. Expects a json object.
+```
+{
+	enable: boolean
+}
+```
+
+## **/jobs**
+A job represents a collection of task-definitions, expected-results, and adapter-association. A job belongs to an adapter. Job data model:
+```
+{
+	name: string,
+	adapter: adapter,
+	tasks: [task],
+	started: int,
+	finished: int or null,
+	error_count: int,
+	status: QUEUED | RUNNING | FINISHED | ERROR,
+	platform: string,
+	pool: string
+}
+```
+
+### **/jobs/`id`**
+The html dashboard or json blob for a specific job. html dashboard displays
+- Job Status
+- Run Time
+- List of Complete Tasks
+- List of Queue Tasks
+- List of Running Tasks
+
+### **/jobs/`id`/abort**
+Aborts a job: Dequeues all tasks, halts all workers associated with a job, reports partial results if possible.
+
+## **/pools**
+A html dashboard or json object listing all pools. A pool is a logical collection of workers. Pools can include workers for any platform, and should be used to reserve workers for a specific workflow or test type. For example: Unit Tests, Release Testing, Long-running Integrity Tests. Pool data model:
+```
+{
+	name: string,
+	workers: [worker],
+	jobs: [job]
+}
+```
+
+## **/pools/`id`**
+The html dashboard or json blob for a specific poll. html dashboard displays
+- Pool Status
+- Worker Summary List
+- Job-Task Queue Length
+
+## **/workers**
+A html dashboard or json object listing all workers. A worker is a logical represetation of a physical worker (remote or local) and syncs with that physical worker via a communication channel. It holds the last known state of a physical worker, and is responsible for detecting a persistent error state on the worker. Worker data model:
+```
+{ 
+	id: string,
+	name: string,
+	pool: string,
+	platform: string,
+	status: ERROR|IDLE|BUSY|DISABLED,
+	task: task,
+	current_uptime: int,
+	error_count: int,
+	total_task_count: int,
+	heartbeat: int
+}
+```
 **/workers/discover**
 Maps a worker to a IP address. Workers are expected to call this when their IP changes.
-A worker that changes address without updating the Core will be considered offline.
-
-**/workers/config**
-_{worker_id: 0}_
-Expects a worker id in the body of the request. Will generate config if the worker_id does not exist or is zero, or return the latest json-encoded config if the worker is found in the database.
+A worker that changes address without updating the Core will be considered offline. A worker will POST to this endpoint with basic information about itself. This should return a JSON object filling in any missing data.
+```
+{
+	id: string,
+	status: ERROR|IDLE|BUSY|DISABLED,
+	platform: string,
+	error_count: int,
+	name: string, //optional
+	pool: string, //optional
+}
+```
 
 **/workers/`id`/**
-Will return json-encoded information about the worker. At minimum it will include `worker_id`, `pool_id`, and `status`.
-It may include a `task_id` if the worker is currently assigned a task.
+Will return json-encoded information about the worker or a html dashboard showing current worker status and allowing config. Allows assigning name, pool, and platform. Lists:
+- Worker Status
+- Job-Task
+- Heartbeat
+- Error Count
 
-**/workers/`id`/pool**
-Will set the pool for a worker if POSTed to.
-Will abort any tasks the worker is currently running.
-
-**/workers/`id`/status**
-Returns the state of a worker as IDLE, OFFLINE, ERROR, BUSY
-
-**/workers/`id`/heartbeat**
-Will return json-encoded heartbeat in seconds. If POSTed to will reset the heartbeat seconds. If a worker doesn't heartbeat every 5 minutes, it's considered offline.
-Offline workers will not be assigned tasks.
-
-**/workers/`id`/results**
-POSTing a file to this url will associate the results with the task_id currently assigned to the worker.
-Expects JUNIT XML to be uploaded. Filename format should follow the following convention:
-`<endtime_utc>`_`<task_id>`_`<build_id>`.xml
-
-### /jobs
-**/jobs**
-Will give a list of all current jobs, their status.
-
-**/jobs/create**
-Adds a new job to the queue. Accepts a json-encoded job description:
+## **/tasks**
+A task is a unit of work to be performed and instructions on how to find and obtain the files associated with it. Task data model:
 ```
 {
-	"key": "", // optional key for CI, distinct from ID
-	"adapter": "appveyor", // the CI adapter, can be LOCAL or any installed adapters
-	"artifact_url": "", // URI containing all test binaries defaults to a temp dir if omitted
-	"tests": {
-		"filename": [] // Binary file : List of expected tests
-	},
-	"scenarios": [], // List of scenarios expected to be run
-	"pool": "default", // default if omitted
-	"platforms": [ "electron", "photon" ] // which platforms to run on
-}
-```
-Will return the created job as a json-encoded structure.
-Adds `id` and `status`, will populate `pool` with _"default"_ if omitted, and localize `artifact_url` with a tmp directory.
-If `artifact_url` was a url to a zip file, it will be unzipped in the localized tmp directory.
-
-**/jobs/`id`/**
-Returns json-encoded information about the job (same format as /jobs/create)
-
-**/jobs/`id`/artifact**
-POSTing a file to this url will add the file to the localized `artifact_url`.
-
-**/jobs/`id`/start**
-Creates tasks for the platforms and them. Sets `status` for the job to running.
-
-
-**/jobs/`id`/abort**
-Cancels and cleans up resources for a job. Removes any locally cached artifacts and tasks.
-
-**/jobs/`id`/results**
-Enumerates XML files uploaded as results.
-Parses JUNIT results on-page.
-
-### /adapters
-**/adapters**
-Will give a list of installed adapters and their associated jobs.
-Allows enable/disable of adapters
-
-**/adapter/`id`/**
-Allows configuring an adapter, setting keys and urls. Configuration is defined by the adapter component.
-Check the adapter description for json shape.
-
-### /tasks
-**/tasks**
-A list of tasks, with status and workers.
-
-**/tasks/create**
-Creates a task for a specific pool, platform, and binary.
-
-**/tasks/`id`**
-Shows the status of a task an the task parameters.
-```
-{
-	"id": 0,
-	"artifact_url": "somehost/dir",
-	"test": "test.bin",
-	"scenarios": "scenario.py",
-	"expectations": ["Test1", "Test2"]
+	name: string,
+	storage: storage,
 }
 ```
 
-**/tasks/`id`/complete**
-Completes a test with an array of result objects.
-```
-[{
-	"name": "binname or scenarios name",
-	"status": "pass/fail/skipped",
-	"assert": "optional, assert text"
-}]
-```
-
-### /pools
-**/pools**
-Gives a list of pools with their assigned workers.
-
-**/pool/create**
-Takes a unique name, returns id and name json-encoded.
-
-**/pool/`id`/**
-Shows load-balancing stats for and current status of a pool.
-
-## Worker API
-
-### /task/create
-Accepts a JSON-encoded task. The worker may reject the task.
-If it accepts it changes it's state to BUSY and downloads the binaries and scenario files it needs.
-
-### /status
-Returns json-encoded status, which can be one of IDLE, BUSY, ERROR.
-An ERROR status should be manually serviced. IDLE and BUSY states will not have new tasks queued to them.
-
-### /config
-POSTing config here will change the worker config. A GET will return the current config cached on device.
+## **/system**
+The system model represents various settings for proteus. System data model:
 ```
 {
-	"worker_id": 0,
-	"name": "Friendly name",
-	"pool_id": 0,
-	"proteus_server": "somehost.domain",
-	"proteus_port": 3000,
-	"worker_address": "<ip of worker>"
+	storage_root: string,
+	public_url: string,
+	uptime: int,
+	config_path: string,
+	log_path: string
+}
+```
+
+## Misc Models
+A list of data models not otherwise covered. These are mostly utility items
+
+### Job-Task
+Relates a job and a task. Job-Task data model:
+```
+{
+	job: job,
+	task: task
+}
+```
+
+### Storage
+Maps Proteus storage to an HTTP, SFTP, FTP, or other method of retreaval. Storage data model:
+```
+{
+	job: job,
+	path: string,
+	uri: string
+}
+```
+
+### Worker-Task
+Maps a worker to a task. Worker-Task data model:
+```
+{
+	worker: worker,
+	task: task
 }
 ```

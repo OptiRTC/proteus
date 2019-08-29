@@ -1,11 +1,8 @@
 
 export enum Partitions {
-	JOBS = "jobs",
-	POOLS = "pools",
 	WORKERS = "workers",
 	TASKS = "tasks",
-	SYSTEM = "system",
-	ADAPTER = "adapter"
+	SYSTEM = "system"
 };
 
 export enum WorkerChannels {
@@ -17,36 +14,16 @@ export enum WorkerChannels {
 	QUERY = "query",
 	ACCEPT = "accept",
 	REJECT = "reject",
-	ABORT = "abort"
-};
-
-export enum JobChannels {
-	RESULT = "result",
-	STATUS = "status",
-	START = "start",
 	ABORT = "abort",
-	NEW = "new",
-	QUERY = "query"
+	ERROR = "error"
 };
 
 export enum TaskChannels {
 	RESULT = "result",
 	ABORT = "abort",
 	STATUS = "status",
-	QUERY = "query"
-};
-
-export enum PoolChannels {
-	STATUS = "status",
 	QUERY = "query",
-	TASK = "task"
-};
-
-export enum AdapterChannels {
-	STORAGEREADY = "storageready",
-	RESULT = "result",
-	STATUS = "status",
-	QUERY = "query"
+	ERROR = "error"
 };
 
 export enum SystemChannels {
@@ -54,5 +31,6 @@ export enum SystemChannels {
 	RELEASESTORAGE = "releasestorage",
 	QUERY = "query",
 	INFO = "info",
-	START = "start"
+	START = "start",
+	ERORR = "error"
 };

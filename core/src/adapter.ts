@@ -3,19 +3,20 @@ import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "common
 import { UniqueID } from "common/uniqueid";
 import {readFileSync} from "fs";
 import { TestCaseResults } from "common/result";
+import { Job } from "job";
+import { ProteusCore } from "proteuscore";
 
-export class Adapter extends UniqueID implements TransportClient
+export class Adapter extends UniqueID
 {
+
+    public jobs:Job[];
+
     constructor(
-        public transport:MessageTransport,
-        public name:string)
+        public name:string,
+        public parent:ProteusCore)
     {
         super();
-        this.transport.subscribe(
-            this,
-            Partitions.ADAPTER,
-            null,
-            this.id);
+        this.jobs = [];
     };
 
     public getBuild():string
@@ -23,15 +24,9 @@ export class Adapter extends UniqueID implements TransportClient
         return "unknown-" + (new Date().getTime());
     };
 
-    public startJob()
+    public async startJob()
     {
-        // First request storage, do any extraction
-        console.log(this.id + " requesting storage");
-        this.transport.sendMessage(
-            Partitions.SYSTEM,
-            SystemChannels.STORAGE,
-            this.id,
-            null);
+        // Resolves with a list of jobs initialized with storage
     };
 
     public loadJob(storage_path:string, storage_id:string)
@@ -48,44 +43,11 @@ export class Adapter extends UniqueID implements TransportClient
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
         config["store_id"] = storage_id;
-        this.transport.sendMessage(Partitions.SYSTEM, SystemChannels.INFO, null, {new_build: config["build"]});
-        //config defines the tests
-        this.transport.sendMessage(Partitions.JOBS, JobChannels.NEW, this.id, config);
-    };
-
-    public onMessage(message:Message)
-    {
-        switch(message.channel)
-        {
-            case AdapterChannels.STORAGEREADY:
-                this.loadJob(message.content["storage_path"], message.content["storage_id"]);
-                break;
-
-            case AdapterChannels.RESULT:
-                this.handleResults(message.content);
-                this.cleanupStorage(message.content[0].task.storage_id);
-                break;
-
-            case AdapterChannels.QUERY:
-                this.transport.sendMessage(
-                    Partitions.ADAPTER,
-                    AdapterChannels.STATUS,
-                    this.name,
-                    { "status": "active" });
-                break;
-
-            default:
-                break;
-        }
     };
 
     public cleanupStorage(storage_id:string)
     {
-        this.transport.sendMessage(
-            Partitions.SYSTEM,
-            SystemChannels.RELEASESTORAGE,
-            storage_id,
-            null);
+       
     };
 
     public handleResults(results:TestCaseResults[])

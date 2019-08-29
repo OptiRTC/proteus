@@ -3,9 +3,9 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "", 
-        "Project": "",
-        "Token": "",
+        "Account": "OptiRTC", 
+        "Project": "thunder",
+        "Token": "v2.wn9katdd52wcodyud51o",
         "PollIntervalSec": 300
     },
     "Core" : {
