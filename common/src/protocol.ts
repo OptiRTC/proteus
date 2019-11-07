@@ -11,7 +11,6 @@ export enum WorkerChannels {
 	HEARTBEAT = "heartbeat",
 	CONFIG = "config",
 	DISCOVER = "discover",
-	QUERY = "query",
 	ACCEPT = "accept",
 	REJECT = "reject",
 	ABORT = "abort",
@@ -27,10 +26,9 @@ export enum TaskChannels {
 };
 
 export enum SystemChannels {
-	STORAGE = "storage",
-	RELEASESTORAGE = "releasestorage",
 	QUERY = "query",
 	INFO = "info",
 	START = "start",
-	ERORR = "error"
+	ERORR = "error",
+	LOG = "log"
 };

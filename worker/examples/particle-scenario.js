@@ -15,7 +15,7 @@ class ParticleScenario extends BaseScenario
         this.name = "Particle Scenario";
         this.line_callback = null;
         this.port = null;
-        console.log(RST_PIN);
+        console.log("Using reset pin " + RST_PIN);
         if (RST_PIN != "none")
         {
             const Gpio = require('onoff').Gpio;

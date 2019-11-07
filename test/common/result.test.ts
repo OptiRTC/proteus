@@ -3,7 +3,7 @@ import { Task } from 'common/task';
 import { Platforms } from 'common/platforms';
 import { TestComponent } from 'common/testcomponents';
 
-test('Serialization', () => {
+test('Serialization_Deserialization_Roundtrip', () => {
 	let result = new Result({
 		name: "res",
     	classname: "res",

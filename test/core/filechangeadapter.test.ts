@@ -20,10 +20,10 @@ test('changed file triggers STORAGE request', done => {
 		};
 	};
 	let transport = new MessageTransport();
-	let listener = new StorageListener();
+	let listener = new ProteusStorageListener();
 	transport.subscribe(listener, Partitions.SYSTEM, null, null);
-	let buildstore = new Storage();
-	let resultstore = new Storage();
+	let buildstore = new ProteusStorage();
+	let resultstore = new ProteusStorage();
 	let adapter = new FileChangeAdapter(
 		transport,
 		buildstore.path,

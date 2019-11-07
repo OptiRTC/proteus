@@ -1,4 +1,4 @@
-import {Task} from "common/task";
+import {Task, TaskStatus} from "common/task";
 import {MessageTransport, Message, TransportClient} from "common/messagetransport";
 import { Partitions, WorkerChannels} from "common/protocol";
 import { Platforms } from "common/platforms";
@@ -10,6 +10,7 @@ export enum WorkerState
     OFFLINE,
     ERROR,
     TASKED,
+    BLACKLISTED
 };
 
 export class Worker implements TransportClient
@@ -29,6 +30,7 @@ export class Worker implements TransportClient
         this.state = WorkerState.OFFLINE;
         this.heartbeat = 0;
         this.task = null;
+        setInterval(() => this.checkHeartbeat(), 500 * this.timeout); // Nyquist frequency and ms conversion
     };
 
     public onMessage(message:Message)
@@ -38,7 +40,6 @@ export class Worker implements TransportClient
             case WorkerChannels.HEARTBEAT:
                 this.heartbeat = new Date().getTime();
                 break;
-
             case WorkerChannels.STATUS:
                 if (this.state != WorkerState.TASKED)
                 {
@@ -47,6 +48,15 @@ export class Worker implements TransportClient
                 break;
             case WorkerChannels.ACCEPT:
                 this.state = WorkerState.BUSY;
+                this.task.status = TaskStatus.RUNNING;
+                break;
+            case WorkerChannels.ERROR:
+                this.state = WorkerState.ERROR;
+                this.task.status = TaskStatus.INCONCLUSIVE;
+                break;
+            case WorkerChannels.ABORT:
+                this.state = WorkerState.IDLE;
+                this.task.status = TaskStatus.CANCELLED;
                 break;
             default:
                 break;
@@ -59,6 +69,7 @@ export class Worker implements TransportClient
         this.task = task;
         this.task.started = new Date().getTime();
         this.task.worker_id = this.id;
+        console.log("Tasking " + this.id);
         this.transport.sendMessage(
             Partitions.WORKERS,
             WorkerChannels.TASK,
@@ -82,6 +93,7 @@ export class Worker implements TransportClient
         if ((new Date().getTime() - this.heartbeat) > this.timeout)
         {
             this.state = WorkerState.OFFLINE;
+            this.task.status = TaskStatus.CANCELLED;
         }
     };
 };

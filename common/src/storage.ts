@@ -1,7 +1,8 @@
 
 import {dirSync, SynchrounousResult} from 'tmp';
+import { promises as fs, existsSync } from 'fs';
 
-export class Storage
+export class ProteusStorage
 {
 	public obj:SynchrounousResult;
 	public id:string;
@@ -17,8 +18,29 @@ export class Storage
 		return this.obj.name;
 	}
 
-	public finish()
+	public async finish()
 	{
-		this.obj.removeCallback();
+		let asyncRemove = async function(path)
+		{
+			if (existsSync(path))
+			{
+				let subpaths = await fs.readdir(path);
+				for await (let file of subpaths)
+				{
+					let curpath = path + "/" + file;
+					let stats = await fs.lstat(curpath);
+					
+					if (stats.isDirectory())
+					{
+						await asyncRemove(curpath);
+						await fs.rmdir(curpath);
+					} else {
+						await fs.unlink(curpath);
+					}
+				}
+			}
+		};
+		asyncRemove(this.obj.name)
+		.then(() => this.obj.removeCallback());
 	}
 };

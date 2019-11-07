@@ -39,7 +39,7 @@ test('Adapter STORAGEREADY fires loadJob', done => {
 	let adapter = new Adapter(transport, 'testadapter');
 
 	let config = {"test": "test" };
-	let store = new Storage();
+	let store = new ProteusStorage();
 	writeFileSync(store.path + "/test.json", JSON.stringify(config));
 	transport.sendMessage(Partitions.ADAPTER, AdapterChannels.STORAGEREADY, adapter.id, store);
 	while(!test_listener.called) {transport.processAll();}

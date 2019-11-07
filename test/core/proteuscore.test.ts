@@ -42,7 +42,7 @@ test('Storage Handling', done => {
         };
     };
     let transport = new MessageTransport();
-    let listener = new StorageListener();
+    let listener = new ProteusStorageListener();
     transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.STORAGEREADY, null);
     let core = new ProteusCore(transport);
     transport.sendMessage(
@@ -75,7 +75,7 @@ test('File Delivery', done => {
         };
     };
     let transport = new MessageTransport();
-    let listener = new StorageListener();
+    let listener = new ProteusStorageListener();
     transport.subscribe(listener, Partitions.ADAPTER, AdapterChannels.STORAGEREADY, null);
     let core = new ProteusCore(transport);
     transport.sendMessage(

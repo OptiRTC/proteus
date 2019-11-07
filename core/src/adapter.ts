@@ -1,22 +1,19 @@
-import { MessageTransport, TransportClient, Message } from "common/messagetransport";
-import { Partitions, AdapterChannels, JobChannels, SystemChannels } from "common/protocol";
 import { UniqueID } from "common/uniqueid";
-import {readFileSync} from "fs";
+import { ArrayFromJSON } from "common/messagetransport";
+import { readFileSync } from "fs";
 import { TestCaseResults } from "common/result";
-import { Job } from "job";
-import { ProteusCore } from "proteuscore";
+import { TestComponent } from "common/testcomponents";
+import { Job } from "core/job";
+import { ProteusCore } from "core/proteuscore";
+import { ProteusStorage } from "common/storage";
 
 export class Adapter extends UniqueID
 {
-
-    public jobs:Job[];
-
     constructor(
         public name:string,
         public parent:ProteusCore)
     {
         super();
-        this.jobs = [];
     };
 
     public getBuild():string
@@ -24,30 +21,25 @@ export class Adapter extends UniqueID
         return "unknown-" + (new Date().getTime());
     };
 
-    public async startJob()
+    public async startJob(storage:ProteusStorage)
     {
-        // Resolves with a list of jobs initialized with storage
-    };
-
-    public loadJob(storage_path:string, storage_id:string)
-    {
-        // We expect when loadJob is called tests.json
-        // and all binaries are extracted into
-        // the temporary storage and made
-        // available to worker-clients
-
-        // Find tests.json
-        // Crack into TestComponents
-        // Send job message
-        let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
+        let config = JSON.parse(readFileSync(storage.path + "/test.json", 'UTF-8'));
         config["adapter_id"] = this.id;
         config["build"] = this.getBuild();
-        config["store_id"] = storage_id;
-    };
-
-    public cleanupStorage(storage_id:string)
-    {
-       
+        config["store_id"] = storage.id;
+        
+        console.log("Starting Appveyor job " + this.getBuild());
+        for(let platform of config["platforms"])
+        {
+            this.parent.registerJob(new Job(
+                config["build"],
+                this.id,
+                platform,
+                config["pool"],
+                storage,
+                ArrayFromJSON(TestComponent, config["tests"])
+                ));
+            }
     };
 
     public handleResults(results:TestCaseResults[])

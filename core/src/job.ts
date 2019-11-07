@@ -1,22 +1,22 @@
-import {Partitions, JobChannels, TaskChannels, AdapterChannels, PoolChannels} from "common/protocol";
 import {Platforms}  from "common/platforms";
 import {TestComponent} from "common/testcomponents";
-import {Task} from "common/task";
+import {Task, TaskStatus} from "common/task";
 import {TestCaseResults} from "common/result";
-import { Message, MessageTransport, TransportClient, ArrayToJSON } from "common/messagetransport";
 import { UniqueID } from "common/uniqueid";
+import { ProteusStorage } from "common/storage";
 
 export class Job extends UniqueID
 {
     protected tasks:Task[];
-    protected results:TestCaseResults[];
+    public results:TestCaseResults[];
     protected finished:boolean;
+
     constructor(
         public build:string,
         public adapter_id:string, // Friendly name of generating source, Manual, Appveyor, Travis, etc
-        public platforms:Platforms[], // List of platforms the job will run on
+        public platform:Platforms, // List of platforms the job will run on
         public pool_id:string, // Pool to run the job in
-        public storage:Storage, // URL or other path to storage for this task (artifacts)
+        public storage:ProteusStorage, // URL or other path to storage for this task (artifacts)
 
         public tests:TestComponent[]) // List of tests to run for this job
     {
@@ -31,20 +31,18 @@ export class Job extends UniqueID
     public start()
     {
         // Obtain storage
-        for(let platform of this.platforms)
+        console.log("Starting job" + this.id);
+        for(let test of this.tests)
         {
-            for(let test of this.tests)
-            {
-                let task = new Task({
-                    build: this.build,
-                    job_id: this.id,
-                    worker_id: null,
-                    platform: platform,
-                    pool_id: this.pool_id,
-                    storage_id: this.storage.id,
-                    test: test.toJSON()});
-                this.tasks.push(task);
-            }
+            let task = new Task({
+                build: this.build,
+                job_id: this.id,
+                worker_id: null,
+                platform: this.platform,
+                pool_id: this.pool_id,
+                storage_id: this.storage.id,
+                test: test.toJSON()});
+            this.tasks.push(task);
         }
     };
 
@@ -53,40 +51,61 @@ export class Job extends UniqueID
         this.finished = true;
         // For every task without a result
         // mark failed
-        let pending_tasks = this.tasks.filter((t) => this.results.findIndex((r) => r.task == t) == -1);
-        
-        for(let task of pending_tasks)
+        let unfinished = this.tasks.filter((t:Task) => 
+            t.status == TaskStatus.NONE ||
+            t.status == TaskStatus.RUNNING ||
+            t.status == TaskStatus.PENDING);
+        for(let task of unfinished)
         {
-            task.abort();
+            task.status = TaskStatus.CANCELLED;
         }
     };
 
-    protected handleTaskMessage(message:Message)
+
+    public nextTask(platform:Platforms):Task
     {
-        if (message.channel == TaskChannels.RESULT)
+        let pending_tasks = this.tasks.filter((t:Task) => 
+            t.status == TaskStatus.NONE &&
+            t.platform == platform);
+        if (pending_tasks.length > 0)
         {
-            let result = new TestCaseResults(message.content);
-            result.populateSkipped();
-            this.addResult(result);
+            return pending_tasks[0];
         }
+        return null;
     };
 
-    protected addResult(result:TestCaseResults)
+    public hasTask(task:Task)
+    {
+        let index = this.tasks.findIndex((t) => t.id == task.id);
+        return index != -1; 
+    };
+
+    public addResult(result:TestCaseResults)
     {
         let index = this.tasks.findIndex((t) => t.id == result.task.id);
         if (index != -1)
         {
+            
+            result.task = this.tasks[index];
+            result.populateSkipped();
+            console.log("Result for " + result.task.test.name);
+            if (result.skipped.length == 0 && result.failed.length == 0)
+            {
+                result.task.status = TaskStatus.PASSED;
+            } else {
+                result.task.status = TaskStatus.FAILED;
+            }
             this.results.push(result);
-        }
-
-        if (this.results.length == this.tasks.length)
-        {
-            this.finished = true;
         }
     };
 
     public isFinished(): boolean
     {
+        this.finished = this.tasks.filter((t:Task) => 
+            t.status == TaskStatus.NONE ||
+            t.status == TaskStatus.RUNNING ||
+            t.status == TaskStatus.PENDING).length == 0;
+        
         return this.finished;
     };
 

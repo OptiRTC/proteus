@@ -1,13 +1,11 @@
 import { Adapter } from "core/adapter";
-import { MessageTransport } from "common/messagetransport";
 import { TestCaseResults } from "common/result";
 import { get } from 'config';
-import { Partitions, SystemChannels, JobChannels } from "common/protocol";
 import AdmZip from 'adm-zip';
 import request from 'request';
-import { writeFileSync, readFileSync, createReadStream } from 'fs';
+import { writeFileSync, createReadStream } from 'fs';
 import * as xmlbuilder from 'xmlbuilder';
-import { ProteusCore } from "proteuscore";
+import { ProteusCore } from "core/proteuscore";
 
 // https://raw.githubusercontent.com/junit-team/junit5/master/platform-tests/src/test/resources/jenkins-junit.xsd
 class junit
@@ -116,11 +114,11 @@ export class AppveyorAdapter extends Adapter
     protected account_name:string;
     protected project_slug:string;
     protected build:string;
-    protected job_storage:Map<string, string>;
     protected token:string;
     protected poll_interval:number;
     protected poll_timer:number;
     protected buildinfo:any;
+    protected versions:string[];
 
     constructor(
         parent:ProteusCore)
@@ -132,7 +130,7 @@ export class AppveyorAdapter extends Adapter
         this.token = get('Appveyor.Token');
         this.poll_interval = parseInt(get('Appveyor.PollIntervalSec')) * 1000;
         this.poll_timer = 0;
-        this.job_storage = new Map<string, string>();
+        this.versions = [];
     };
 
     public getBuild():string
@@ -144,10 +142,15 @@ export class AppveyorAdapter extends Adapter
     {
         // Upload Test to URL
         let junitxml = new junit(results);
-        let file = "/tmp/results_" + results[0].task.build + ".xml";
-        console.log(junitxml.xmlString());
+        let result_build = results[0].task.build;
+        if (!(this.versions.includes(result_build)))
+        {
+            console.log("No job match", result_build, this.versions);
+            return;
+        }
+        let file = "/tmp/results_" + result_build + ".xml";
         junitxml.writeFile(file);
-        this.appveyorUpload("api/testresults/junit/" + results[0].task.build, file)
+        this.appveyorUpload("api/testresults/junit/" + result_build, file)
         .then((res) => {
             try {
                 console.log(JSON.parse(res));
@@ -156,6 +159,7 @@ export class AppveyorAdapter extends Adapter
             }
         })
         .catch((err) => {
+            console.log(err);
             try {
                 console.log(JSON.parse(err));
             } catch(e) {
@@ -186,6 +190,7 @@ export class AppveyorAdapter extends Adapter
                 {
                     resolve(body);
                 } else {
+                    console.log(err, res.statusCode);
                     reject(err);
                 }
             });
@@ -199,7 +204,7 @@ export class AppveyorAdapter extends Adapter
             request.post(options, (err, res, body) => {
                 if (err != null)
                 {
-                    reject(err);
+                    reject(body);
                     return;
                 }
                 if(res.statusCode >= 200 &&
@@ -219,7 +224,7 @@ export class AppveyorAdapter extends Adapter
             let req = request.post(this.appveyorOptions(path), (err, res, body) => {
                 if (err != null)
                 {
-                    reject(err);
+                    reject(body);
                     return;
                 }
                 if (res.statusCode >= 200 &&
@@ -234,88 +239,50 @@ export class AppveyorAdapter extends Adapter
         });
     }
 
-    public loadJob(storage_path:string, storage_id:string)
-    {
-        let target_job = null;
-        // Find first job that needs storage
-        for(let job of this.job_storage.keys())
-        {
-            if (this.job_storage.get(job) == null)
-            {
-                this.job_storage.set(job, storage_id);
-                target_job = job;
-                break;
-            }
-        }
-
-        if (target_job == null)
-        {
-            throw "No jobs need storage!";
-        }
-        console.log("Fetching Artifact Metadata for " + target_job);
-        let fetch_timeout = null;
-        let fetch = () => {
-            this.appveyorGet("api/buildjobs/" + target_job + "/artifacts").then((buffer) =>
-            {
-                let artifacts = JSON.parse(buffer);
-                console.log("Fetching Artifact ZIP for " + target_job);
-                this.appveyorGet("api/buildjobs/" + target_job + "/artifacts/" + artifacts[0]["fileName"]).then((body) =>
-                {
-                    console.log("Extracting ZIP for " + target_job);
-                    let targetFile = "/tmp/" + target_job + ".zip";
-                    writeFileSync(targetFile, body);
-                    let zip = new AdmZip(targetFile);
-                    zip.extractAllTo(storage_path, true);
-                    let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
-                    config["adapter_id"] = this.id;
-                    config["build"] = target_job;
-                    config["store_id"] = storage_id;
-                    if (fetch_timeout != null)
-                    {
-                        clearTimeout(fetch_timeout);
-                    }
-                    console.log("Starting Appveyor job " + target_job);
-                }).catch((e) => console.log(e));
-            }).catch((e) => console.log(e));
-        };
-        let refetch = () => {
-            fetch();
-            fetch_timeout = setTimeout(refetch, 60000);
-        };
-        refetch();
-    };
-
     public parseBuild(buffer:any)
     {
         this.buildinfo = JSON.parse(buffer);
-        if (this.build != this.buildinfo["build"]["version"])
+        // If the build isn't being run kick off run
+      
+        let build_no = this.buildinfo["build"]["version"]
+        console.log("Checking Metadata for " + build_no);
+        for(let job of this.buildinfo["build"]["jobs"])
         {
-            // Ensure all jobs are finished
-            this.job_storage.forEach((storage:string, jobId:string) => {
-                this.transport.sendMessage(
-                    Partitions.JOBS,
-                    JobChannels.ABORT,
-                    null,
-                    { build: jobId });
-            });
-            this.job_storage.clear();
-            this.build = this.buildinfo["build"]["version"];
-        }
-        if (this.build != null)
-        {
-            for(let job of this.buildinfo["build"]["jobs"])
+            if (this.versions.includes(job["jobId"]))
             {
-                if (job["artifactsCount"] != 0 &&
-                    !this.job_storage.has(job["jobId"]))
+                return;
+            }
+            let fetch_timeout = null;
+            let fetch = () => {
+                this.appveyorGet("api/buildjobs/" + job["jobId"] + "/artifacts").then((buffer) =>
                 {
-                    this.job_storage.set(job["jobId"], null);
-                    this.transport.sendMessage(
-                        Partitions.SYSTEM,
-                        SystemChannels.STORAGE,
-                        this.id,
-                        null);
-                    console.log("Appveyor artifacts " + job["jobId"]);
-                }
+                    let storage = this.parent.createStorage();
+                    let artifacts = JSON.parse(buffer);
+                    let targetFile =  artifacts[0]["fileName"];
+                    console.log("Downloading Artifacts for " + job["jobId"]);
+                    this.appveyorGet("api/buildjobs/" + job["jobId"] + "/artifacts/" + targetFile).then((body) =>
+                    {
+                        let localFile = "/tmp/" + targetFile;
+                        writeFileSync(localFile, body);
+                        let zip = new AdmZip(localFile);
+                        zip.extractAllTo(storage.path, true);
+                        this.build = job["jobId"];
+                        this.startJob(storage);
+                        if (fetch_timeout != null)
+                        {
+                            clearTimeout(fetch_timeout);
+                        }
+                        this.versions.push(job["jobId"]);
+                    }).catch((e) => console.log(e));
+                }).catch((e) => console.log(e));
+            };
+            let refetch = () => {
+                fetch();
+                fetch_timeout = setTimeout(refetch, 60000);
+            };
+            if (job["artifactsCount"] > 0)
+            {
+                refetch();
             }
         }
     };

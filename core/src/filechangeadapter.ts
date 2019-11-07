@@ -1,8 +1,7 @@
 import { Adapter } from "core/adapter";
-import { readFileSync, writeFileSync } from 'fs';
+import { writeFileSync } from 'fs';
 import { TestCaseResults } from "common/result";
 import { ncp } from 'ncp';
-import { Partitions, SystemChannels } from "common/protocol";
 import { watch, FSWatcher } from 'chokidar';
 import { existsSync, mkdirSync } from 'fs';
 import { ProteusCore } from "core/proteuscore";
@@ -46,8 +45,7 @@ export class FileChangeAdapter extends Adapter
     public getBuild():string
     {
         // Look for metadata.json
-        let config = JSON.parse(readFileSync(this.buildpath + "/test.json").toString());
-        return config["build"];
+        return "local_build";
     };
 
     public onChange()
@@ -56,11 +54,18 @@ export class FileChangeAdapter extends Adapter
         {
             this.debounce = setTimeout(() => {
                 console.log("New local job");
-                this.transport.sendMessage(
-                    Partitions.SYSTEM,
-                    SystemChannels.STORAGE,
-                    this.id,
-                    null);
+                let storage = this.parent.createStorage();
+                new Promise<void>((resolve, reject) => {
+                    ncp(this.buildpath, storage.path, { clobber: true }, (err) => {
+                        if (!err)
+                        {
+                            resolve();
+                        } else {
+                            reject(err);
+                        }
+                    });
+                }).then(() => this.startJob(storage))
+                .catch(e => console.log(e));
                 this.debounce = null;
             }, 20000);
         }
@@ -76,19 +81,4 @@ export class FileChangeAdapter extends Adapter
         }
         writeFileSync(this.resultspath + "/" + name + '.xml', JSON.stringify(results));
     };
-
-    public loadJob(storage_path:string, storage_id:string)
-    {
-        new Promise<void>((resolve, reject) => {
-            ncp(this.buildpath, storage_path, { clobber: true }, (err) => {
-                if (!err)
-                {
-                    resolve();
-                } else {
-                    reject(err);
-                }
-            });
-        }).then(() => super.loadJob(storage_path, storage_id));
-
-    }
 };

@@ -1,9 +1,7 @@
-import {Platforms} from "common/platforms";
-import {TestComponent} from "common/testcomponents";
-import {UniqueID} from "common/uniqueid";
-import { MessageTransport, Transportable } from "common/messagetransport";
-import { Partitions, TaskChannels } from "common/protocol";
-import { Result, TestStatus, TestCaseResults } from "common/result";
+import { Platforms } from "common/platforms";
+import { TestComponent } from "common/testcomponents";
+import { UniqueID } from "common/uniqueid";
+import { Transportable } from "common/messagetransport";
 
 export enum TaskStatus
 {
@@ -16,7 +14,8 @@ export enum TaskStatus
     INCONCLUSIVE = "Inconclusive",
     NOTFOUND = "NotFound",
     CANCELLED = "Cancelled",
-    NOTRUNNABLE = "NotRunable"
+    NOTRUNNABLE = "NotRunable",
+    PENDING = "Pending"
 };
 
 export class Task extends UniqueID implements Transportable
@@ -28,7 +27,6 @@ export class Task extends UniqueID implements Transportable
     public pool_id:string;
     public storage_id:string;
     public test:TestComponent;
-    public result:Result;
     public timestamp:number;
     public started:number;
     public status:TaskStatus;
@@ -46,23 +44,6 @@ export class Task extends UniqueID implements Transportable
         }
     };
 
-    public abort()
-    {
-        this.status = TaskStatus.CANCELLED;
-        let results = [];
-        for (let expected of this.test.expectations)
-        {
-            let abort_res = new Result();
-            abort_res.name = expected;
-            abort_res.classname = this.test.scenario;
-            abort_res.status = TestStatus.FAILED;
-            abort_res.assertions = 1;
-            abort_res.finished = new Date().getTime();
-            abort_res.messages = [ "Test ABORTED" ];
-            results.push(abort_res);
-        }
-    };
-
     public toJSON():any
     {
         return {
@@ -75,7 +56,7 @@ export class Task extends UniqueID implements Transportable
             storage_id: this.storage_id,
             started: this.started,
             timestamp: this.timestamp,
-            test: this.test.toJSON()
+            test: this.test != null ? this.test.toJSON() : null
         };
     };
 

@@ -29,7 +29,6 @@ export class MQTTDaemon
         {
             setImmediate(() => this.run());
         } else {
-            console.log("Exit");
             this.core.close();
         }
     };

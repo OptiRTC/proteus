@@ -72,7 +72,7 @@ export class TestCaseResults extends UniqueID implements Transportable
             this.fromJSON(content);
         } else {
             this.passing = [];
-            this.failed =[];
+            this.failed = [];
             this.timestamp = new Date().getTime();
         }
     };
