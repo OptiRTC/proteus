@@ -1,0 +1,19 @@
+{
+    "name": "ProductTests",
+    "build": "test-0.0.1",
+    "platforms": [ "electron" ],
+    "pool": "default",
+    "tests": [
+        {
+            "name": "BasicUnitTest",
+            "binary":"product_unittest.bin",
+            "scenario": "product_unittest.js",
+            "expectations": [
+                "BasicTest01",
+                "BasicTest02",
+                "ProductAssertsTrue",
+                "ProductParser"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,102 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Unit Tests",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/test",
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/test/node_modules/.bin/jest",
+          "--runInBand"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Integration Tests",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}/test",
+        "runtimeArgs": [
+          "--inspect-brk",
+          "${workspaceFolder}/test/node_modules/.bin/jest",
+          "--runInBand",
+          "integration"
+        ],
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Core",
+        "type": "node",
+        "request": "launch",
+        "smartStep": false,
+        "cwd": "${workspaceFolder}",
+        "args": ["core/src/execute.ts"],
+        "runtimeArgs": [
+          "--inspect-brk",
+          "--nolazy",
+          "-r",
+          "ts-node/register",
+          "-r",
+          "tsconfig-paths/register"
+        ],
+        "protocol": "inspector",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Worker",
+        "type": "node",
+        "request": "launch",
+        "cwd": "${workspaceFolder}",
+        "args": ["worker/src/execute.ts"],
+        "env": {
+          "NODE_PATH": "/usr/local/lib/node_modules/lib/node_modules/",
+          "PORT": "/dev/electron",
+          "RST_PIN": "none",
+          "SER_PRT": "/dev/ttyACM0",
+          "DFU_PORT": "/dev/ttyACM0",
+          "PLATFORM": "electron"
+        },
+        "runtimeArgs": [
+          "--inspect-brk",
+          "--nolazy",
+          "-r",
+          "ts-node/register",
+          "-r",
+          "tsconfig-paths/register"
+        ],
+        "protocol": "inspector",
+        "console": "integratedTerminal",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Remote-Worker",
+        "type": "node",
+        "request": "attach",
+        "address": "testrig.localdomain",
+        "localRoot": "${workspaceFolder}",
+        "remoteRoot": "/home/pi/proteus",
+        "protocol": "inspector",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      },
+      {
+        "name": "Remote-Core",
+        "type": "node",
+        "request": "attach",
+        "address": "proteustestcore.local",
+        "protocol": "inspector",
+        "internalConsoleOptions": "neverOpen",
+        "port": 9229
+      }
+
+    ]
+  }

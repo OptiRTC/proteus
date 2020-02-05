@@ -1,0 +1,46 @@
+{
+  "name": "proteus",
+  "version": "2.0.0",
+  "description": "A test-facilitation framework for distributed hardware",
+  "private": true,
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "postinstall": "cd common; npm i; cd ..; cd core; npm i; cd ..; cd worker; npm i; cd ..",
+    "build-common": "cd common; tsc -b",
+    "build-worker": "cd worker; tsc -b; cd ..; webpack --config worker.webpack.config.js",
+    "build-core": "cd core; tsc -b; cd ..; webpack --config core.webpack.config.js",
+    "test": "cd test; tsc -b; npx jest --runInBand --detectOpenHandles; cd ..",
+    "core": "ts-node -r tsconfig-paths/register core/src/execute.ts",
+    "worker": "ts-node -r tsconfig-paths/register worker/src/execute.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OptiRTC/proteus.git"
+  },
+  "author": "Austen Higgins-Cassidy (ahigginscassidy@optirtc.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OptiRTC/proteus/issues"
+  },
+  "homepage": "https://github.com/OptiRTC/proteus#readme",
+  "devDependencies": {
+    "@types/node": "^11.11.4",
+    "@types/xmlbuilder": "0.0.34",
+    "fs": "0.0.1-security",
+    "logzio-nodejs": "^1.0.7",
+    "shebang-loader": "0.0.1",
+    "ts-node": "^8.0.2",
+    "tsconfig-paths": "^3.8.0",
+    "typescript": "^3.3.4000",
+    "webpack": "^4.29.0",
+    "webpack-cli": "^3.2.1",
+    "xmlbuilder": "^11.0.0"
+  },
+  "dependencies": {
+    "node-typescript": "^0.1.3",
+    "uuidv4": "^5.0.0"
+  }
+}

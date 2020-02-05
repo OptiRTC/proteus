@@ -1,23 +1,65 @@
-version: '1.0.0-{build}'
+version: '2.1.0-{build}'
 
 image: Ubuntu
+  APPVEYOR_TOKEN:
+    secure: 
+  WORKER_NAME: proteus-worker-$APPVEYOR_BUILD_VERSION
+  CORE_NAME: proteus-core-$APPVEYOR_BUILD_VERSION
 
 environment:
-  BUILD_NAME: APPNAME-$APPVEYOR_BUILD_VERSION
-  APPVEYOR_TOKEN:
-    secure: APPVEYOR_TOKEN
+  nodejs_version: "10"
+
+cache:
+  - node_modules -> package.json
+  - core/node_modules -> core/package.json
+  - worker/node_modules -> worker/package.json
+  - common/node_modules -> common/package.json
 
 init:
   - sudo apt-get -qq update
+  - sudo apt install curl
+  - curl -sL https://deb.nodesource.com/setup_10.x | sudo bash -
+  - sudo apt install nodejs
+
+install:
+  - npm install
+  - cd common; npm install
+  - cd core; npm install
+  - cd worker; npm install
+
+test_script:
+  - node --version
+  - npm --version
+  - npm run test
+
+build:
+  - npm run build-core
+  - npm run build-worker
+
+clone_depth: 1
 
 after_build:
-  - 7z a $BUILD_NAME.zip bin/electron/*.bin
-  - 7z a $BUILD_NAME.zip bin/photon/*.bin
+  - 7z a $CORE_NAME.zip dist/core/*
+  - 7z a $WORKER_NAME.zip dist/worker/*
 
 artifacts:
-    path: $BUILD_NAME.zip
-    name: Binaries
+  - path: $WORKER_NAME.zip
+    name: Proteus Worker Client
     type: zip
 
-on_success:
-  - proteus/appveyor_test_wait.py
+  - path: $CORE_NAME.zip
+    name: Proteus Core
+    type: zip
+
+deploy:
+  release: $APPVEYOR_REPO_TAG_NAME
+  description: Proteus Test Framework
+  provider: GitHub
+  auth_token:
+    secure: xlXdel7u53tPnfu+gMZ1m4wG7NvUshwyilM4GiodFFFwqnoquFkCDJqftOz7jnBW
+  artifact: /.*\.zip/
+  draft: false
+  prerelease: false
+  on:
+    branch: master
+    APPVEYOR_REPO_TAG: true

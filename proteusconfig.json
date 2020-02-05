@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "es2018",
+        "module": "commonjs",
+        "lib": [
+            "es2018",
+            "scripthost",
+            "esnext.asynciterable",
+            "dom",
+            "dom.iterable"
+        ],
+        "moduleResolution" : "node",
+        "outDir": "./bin",
+        "sourceMap": true,
+        "rootDir": "./",
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "composite": true
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "Files": {
+        "Port": 3000
+    },
+    "Appveyor": {
+        "Account": "",
+        "Project": "",
+        "Token": "",
+        "PollIntervalSec": 300
+    },
+    "Core" : {
+        "MessageServer": "mqtt://localhost",
+        "MessagePort": 1883,
+        "FileServer": "localhost",
+        "FilePort": 3000
+    },
+    "Logz" : {
+        "Token": ""
+    },
+    "Worker": {
+        "id": "DebugWorker",
+        "timeout": 120,
+        "pool": "default",
+        "platform": "electron",
+        "heartbeat": 60
+    },
+    "Serial": {
+        "port": "/dev/electron",
+        "dfuPort": "/dev/ttyAMA0"
+    }
+}

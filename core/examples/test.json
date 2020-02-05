@@ -1,0 +1,26 @@
+{
+    "name": "ProductTests",
+    "build": "test-0.0.1",
+    "platforms": [ "electron", "photon"],
+    "pool": "product_dev",
+    "tests": [
+        {
+            "name": "BasicUnitTest",
+            "binary":"product_unittest.bin",
+            "expectations": [
+                "BasicTest01",
+                "BasicTest02",
+                "ProductAssertsTrue",
+                "ProductParser"
+            ]
+        },
+        {
+            "name": "BasicScenario",
+            "binary": "product.bin",
+            "scenario": "network_messages",
+            "expectations": [
+                "network_messages"
+            ]
+        }
+    ]
+}
