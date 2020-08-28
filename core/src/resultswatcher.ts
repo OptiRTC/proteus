@@ -1,4 +1,4 @@
-/*import {Job} from "core/job";
+/* import {Job} from "core/job";
 import {Pool} from "core/pool";
 import {Message, MessageTransport, TransportClient, ArrayFromJSON} from 'common/messagetransport';
 import {Partitions, WorkerChannels, JobChannels, SystemChannels} from 'common/protocol';

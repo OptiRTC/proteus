@@ -111,3 +111,4 @@ dist/core/*.js
 dist/worker/*.js
 node_modules/
 */node_modules/
+**/node_modules

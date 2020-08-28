@@ -268,7 +268,8 @@ export class AppveyorAdapter extends Adapter
                     writeFileSync(targetFile, body);
                     let zip = new AdmZip(targetFile);
                     zip.extractAllTo(storage_path, true);
-                    let config = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
+                    let config = {};
+                    config["test_list"] = JSON.parse(readFileSync(storage_path + "/test.json", 'UTF-8'));
                     config["adapter_id"] = this.id;
                     config["build"] = target_job;
                     config["store_id"] = storage_id;

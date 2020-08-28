@@ -63,36 +63,42 @@ export class ProteusCore implements TransportClient
         if (message.channel == JobChannels.NEW)
         {
             let platforms = [];
-            if (message.content.platforms != undefined)
-            {
-                // Should be an array of strings
-                for (let platform of message.content.platforms)
+            for(let description of message.content.test_list)
+            {       
+                if (description.platforms != undefined)
                 {
-                    platform = platform.toLowerCase();
-                    if (Object.values(Platforms).includes(platform))
+                    // Should be an array of strings
+                    for (let platform of description.platforms)
                     {
-                        platforms.push(platform);
+                        platform = platform.toLowerCase();
+                        if (Object.values(Platforms).includes(platform))
+                        {
+                            platforms.push(platform);
+                        }
                     }
+                } else {
+                    platforms = this.default_platforms;
                 }
-            } else {
-                platforms = this.default_platforms;
-            }
 
-            let tests = [];
-            if (message.content.tests != undefined)
-            {
-                tests = ArrayFromJSON<TestComponent>(TestComponent, message.content.tests);
-            } else {
-                tests = this.default_tests;
-            }
+                let tests = [];
+                if (description.tests != undefined)
+                {
+                    tests = ArrayFromJSON<TestComponent>(TestComponent, description.tests);
+                } else {
+                    tests = this.default_tests;
+                }
 
-            this.createJob(
-                message.content.adapter_id,
-                message.content.build,
-                platforms,
-                message.content.pool_id,
-                tests,
-                message.content.store_id).start();
+                if (tests.length > 0)
+                {
+                    this.createJob(
+                        message.content.adapter_id,
+                        message.content.build,
+                        platforms,
+                        description.pool,
+                        tests,
+                        message.content.store_id).start();
+                }
+            }
         }
     };
 

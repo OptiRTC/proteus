@@ -59,12 +59,16 @@ export class Job extends UniqueID implements TransportClient
                 this.tasks.push(task);
             }
         }
-
-        this.transport.sendMessage(
-            Partitions.POOLS,
-            PoolChannels.TASK,
-            this.pool_id,
-            ArrayToJSON(this.tasks));
+        if (this.tasks.length > 0)
+        {
+            this.transport.sendMessage(
+                Partitions.POOLS,
+                PoolChannels.TASK,
+                this.pool_id,
+                ArrayToJSON(this.tasks));
+        } else {
+            this.abort();
+        }
     };
 
     public abort()
@@ -204,7 +208,7 @@ export class Job extends UniqueID implements TransportClient
             }
             if (!found)
             {
-                console.log("Pending: " + task.test.name);
+                console.log(`Pending: ${task.test.name} (${task.worker_id})`);
             } else {
                 console.log("Finished: " + task.test.name);
             }

@@ -16,6 +16,7 @@ export class WorkerClient extends Worker
 {
     public local_storage:Storage;
     public task:Task;
+    public result:TestCaseResults;
     public config_interval:NodeJS.Timeout;
     public abort:any;
 
@@ -28,6 +29,7 @@ export class WorkerClient extends Worker
             transport,
             parseInt(get("Worker.timeout")) * 1000);
         this.task = null;
+        this.result = null;
         this.local_storage = new Storage();;
         this.transport.subscribe(this, Partitions.SYSTEM, SystemChannels.START, null);
         this.transport.subscribe(this, Partitions.WORKERS, WorkerChannels.QUERY, null);
@@ -65,25 +67,25 @@ export class WorkerClient extends Worker
                 console.log("Starting Task", message.content.id);
                 this.state = WorkerState.BUSY;
                 this.sendStatus();
-                let res:TestCaseResults = null;
+                this.result = null;
                 this.task = new Task(message.content);
                 this.fetchArtifacts()
                     .then(() => this.runTest(this.task.test)
                         .then((result:TestCaseResults) =>
                         {
-                            res = result;
-                            res.worker_id = get('Worker.id');
-                            res.timestamp = new Date().getTime();
-                            res.task = this.task;
-                            res.populateSkipped();
+                            this.result = result;
+                            this.result.worker_id = get('Worker.id');
+                            this.result.timestamp = new Date().getTime();
+                            this.result.task = this.task;
+                            this.result.populateSkipped();
                         }).catch((e) => {
                             console.log(e);
-                            res = new TestCaseResults({
+                            this.result = new TestCaseResults({
                                 worker_id: get('Worker.id'),
                                 timestamp: new Date().getTime(),
                                 task: this.task,
                                 failed: this.task.test.expectations.map((item) => {
-                                    new Result({
+                                    return new Result({
                                         name: item,
                                         classname: this.task.test.scenario,
                                         started: new Date().getTime(),
@@ -98,7 +100,7 @@ export class WorkerClient extends Worker
                                 Partitions.TASKS,
                                 TaskChannels.RESULT,
                                 this.task.id,
-                                res.toJSON());
+                                this.result.toJSON());
                         }))
                     .catch((e) => {
                         console.log(e);
@@ -158,7 +160,7 @@ export class WorkerClient extends Worker
             this.id,
             {
                 state: this.state,
-                task_name: this.task.test.name
+                task_name: this.task != null ? this.task.test.name : "IDLE"
             });
     };
 

@@ -3,15 +3,15 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "", 
-        "Project": "",
-        "Token": "",
+        "Account": "optirtc", 
+        "Project": "thunder",
+        "Token": "APPVEYOR_TOKEN",
         "PollIntervalSec": 300
     },
     "Core" : {
-        "MessageServer": "mqtt://localhost",
+        "MessageServer": "mqtt://proteus",
         "MessagePort": 1883,
-        "FileServer": "localhost",
+        "FileServer": "proteus",
         "FilePort": 3000
     },
     "Worker": {
