@@ -187,7 +187,7 @@ export class WorkerClient extends Worker
             {
                 // Scenarios are a promise chain
                 try {
-                    let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
+                    let scenario_file = this.local_storage.path + "/" + test.scenario;
                     let scenario = null;
                     console.log("Loading scenario " + scenario_file);
                     if (typeof __non_webpack_require__ != "undefined")

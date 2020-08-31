@@ -240,10 +240,5 @@ export class ProteusCore implements TransportClient
     public sendStatus()
     {
         this.statusPayload();
-        /*this.transport.sendMessage(
-            Partitions.SYSTEM,
-            SystemChannels.STATUS,
-            null,
-            payload);*/
     };
 };

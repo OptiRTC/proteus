@@ -67,6 +67,16 @@ export class Job extends UniqueID implements TransportClient
                 this.pool_id,
                 ArrayToJSON(this.tasks));
         } else {
+            let task = new Task({
+                build: this.build,
+                job_id: this.id,
+                worker_id: null,
+                platform: "null",
+                pool_id: this.pool_id,
+                storage_id: this.storage_id,
+                test: new TestComponent({name: "Empty Test", metadata: {}, scenario: "No Data", expectations: []})
+            });
+            this.tasks.push(task);
             this.abort();
         }
     };
