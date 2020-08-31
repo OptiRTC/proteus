@@ -6,7 +6,7 @@ import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
 import { Task } from 'common/task';
 import { Storage } from 'common/storage';
-import { relative }  from 'path';
+import { relative} from 'path';
 import request from 'request';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
@@ -187,17 +187,19 @@ export class WorkerClient extends Worker
             {
                 // Scenarios are a promise chain
                 try {
-                    let scenario_file = this.local_storage.path + "/" + test.scenario;
-                    let scenario = null;
+                    let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
+                    let scenario_def = null;
                     console.log("Loading scenario " + scenario_file);
                     if (typeof __non_webpack_require__ != "undefined")
                     {
                         delete __non_webpack_require__.cache[__non_webpack_require__.resolve(scenario_file)];
-                        scenario = __non_webpack_require__(scenario_file).scenario;
+                        scenario_def = __non_webpack_require__(scenario_file).scenario;
                     } else {
                         delete require.cache[require.resolve(scenario_file)];
-                        scenario = require(scenario_file).scenario;
+                        scenario_def = require(scenario_file).scenario;
                     }
+                    let scenario = new scenario_def();
+
                     console.log("Starting test" + test.name);
                     console.log(JSON.stringify(test.metadata));
                     scenario.run(test.metadata)
