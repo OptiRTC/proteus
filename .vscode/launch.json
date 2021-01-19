@@ -57,12 +57,13 @@
         "cwd": "${workspaceFolder}",
         "args": ["worker/src/execute.ts"],
         "env": {
-          "NODE_PATH": "/usr/local/lib/node_modules/lib/node_modules/",
+          "NODE_PATH": "/usr/lib/node_modules",
           "PORT": "/dev/electron",
           "RST_PIN": "none",
           "SER_PRT": "/dev/ttyACM0",
           "DFU_PORT": "/dev/ttyACM0",
-          "PLATFORM": "electron"
+          "PLATFORM": "electron",
+          "AZURE_STORAGE_CONNECTION_STRING":"BlobEndpoint=https://qaembeddeddeviceops.blob.core.windows.net/;QueueEndpoint=https://qaembeddeddeviceops.queue.core.windows.net/;FileEndpoint=https://qaembeddeddeviceops.file.core.windows.net/;TableEndpoint=https://qaembeddeddeviceops.table.core.windows.net/;SharedAccessSignature=sv=2019-12-12&ss=bf&srt=co&sp=rlx&se=2021-10-30T06:57:22Z&st=2020-10-29T22:57:22Z&spr=https&sig=ZAQO0WbV3DNuL%2F%2FN%2F7RuOPiJXwjynzJ4solxJdK43Uk%3D"
         },
         "runtimeArgs": [
           "--inspect-brk",

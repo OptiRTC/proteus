@@ -6,11 +6,11 @@ import { TestComponent } from 'common/testcomponents';
 import { Result, TestCaseResults, TestStatus } from 'common/result';
 import { Task } from 'common/task';
 import { ProteusStorage } from 'common/storage';
-import { relative }  from 'path';
+import { ChildProcess, fork } from 'child_process';
+import { resolve }  from 'path';
 import request from 'request';
 import AdmZip from 'adm-zip';
 import fs from 'fs';
-declare const __non_webpack_require__:any;
 
 export class WorkerClient extends Worker
 {
@@ -31,10 +31,10 @@ export class WorkerClient extends Worker
         this.local_storage = new ProteusStorage();;
         this.transport.subscribe(this, Partitions.SYSTEM, SystemChannels.START, null);
         this.transport.subscribe(this, Partitions.WORKERS, null, this.id);
-        this.config_interval = setInterval(() => this.sendDiscovery(), 15000);
+        this.config_interval = setInterval(() => this.sendDiscovery(), 30000);
         this.abort = null;
         this.state = WorkerState.IDLE;
-        setInterval(() => this.sendHeartbeat(), parseInt(get('Worker.heartbeat')) * 1000);
+        setInterval(() => this.sendHeartbeat(), this.timeout / 2);
     };
 
     public onMessage(message:Message)
@@ -63,9 +63,9 @@ export class WorkerClient extends Worker
                 this.task = new Task(message.content);
                 this.fetchArtifacts()
                     .then(() => this.runTest(this.task.test)
-                        .then((result:TestCaseResults) =>
+                        .then((result:any) =>
                         {
-                            res = result;
+                            res = new TestCaseResults(result);
                             res.worker_id = get('Worker.id');
                             res.timestamp = new Date().getTime();
                             res.task = this.task;
@@ -168,59 +168,58 @@ export class WorkerClient extends Worker
 
     public runTest(test:TestComponent):Promise<TestCaseResults> {
         console.log("Running Test");
-        return new Promise<TestCaseResults>((resolve, reject) =>
+        return new Promise<TestCaseResults>((res, reject) =>
         {
+            let child:ChildProcess = null;
             this.abort = () => {
                 reject("Aborted Run");
             };
             let rejectTimeout = setTimeout(() => {
+                if (child != null)
+                {
+                    child.kill();
+                }
                 reject("Test Timed out (" + this.timeout + ")");
             }, this.timeout);
             if (test.scenario != null)
             {
                 // Scenarios are a promise chain
-                try {
-                    let scenario_file = relative(__dirname, this.local_storage.path + "/" + test.scenario);
-                    let scenario = null;
-                    if (typeof __non_webpack_require__ != "undefined")
+                console.log("Running test bootstrap");
+                child = fork('./bin/worker/src/bootstrap', [], {
+                    env: process.env,
+                    stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+                });
+                child.stderr.pipe(process.stdout);
+                child.stdout.pipe(process.stdout);
+                
+                child.on('exit', function (code, signal) {
+                    console.log(`child exit: ${code}, ${signal}`);
+                });
+                child.on('close', function (code, signal) {
+                    console.log(`child close: ${code}, ${signal}`);
+                });
+                child.on('message', (packet) => {
+                    switch(packet.type)
                     {
-                        delete __non_webpack_require__.cache[__non_webpack_require__.resolve(scenario_file)];
-                        scenario = __non_webpack_require__(scenario_file).scenario;
-                    } else {
-                        delete require.cache[require.resolve(scenario_file)];
-                        scenario = require(scenario_file).scenario;
+                        case TaskChannels.RESULT:
+                            clearTimeout(rejectTimeout);
+                            child.kill();
+                            res(packet.results);
+                            break;
+                        default:
+                            console.log("Unknown message from child process");
+                            break;
                     }
-                    scenario.run(test.metadata)
-                    .then((results) => {
-                        results = results.map((item) => new Result(item));
-                        resolve(new TestCaseResults({
-                            worker_id: get('Worker.id'),
-                            timestamp: new Date().getTime(),
-                            passing: results.filter((r) => r.status == TestStatus.PASSING),
-                            failed: results.filter((r) => r.status == TestStatus.FAILED)
-                        }));
-                    }).catch((e) => {
-                        resolve(new TestCaseResults({
-                            worker_id: get('Worker.id'),
-                            timestamp: new Date().getTime(),
-                            failed: test.expectations.map((item) => {
-                                new Result({
-                                    name: item,
-                                    classname: test.scenario,
-                                    started: new Date().getTime(),
-                                    finished: new Date().getTime(),
-                                    status: TestStatus.FAILED,
-                                    messages: [e]})
-                                })
-                        }));
-                    }).finally(() => {
-                        clearTimeout(rejectTimeout);
-                    });
-                } catch (e) {
-                    reject(e);
-                }
+                });
+                
+                child.send({
+                    scenario: resolve(this.local_storage.path + "/" + test.scenario),
+                    test: test
+                });
+                
+                
             } else {
-                reject("Scenario not found");
+                reject("Scenario value null");
             }
         });
     };
@@ -244,7 +243,7 @@ export class WorkerClient extends Worker
                         return;
                     }
                     try {
-                        let targetFile = '/tmp/artifacts.zip';
+                        let targetFile = `/tmp/artifacts${this.local_storage.id}.zip`;
                         fs.writeFileSync(targetFile, body, 'binary');
                         let zip = new AdmZip(targetFile);
                         zip.extractAllTo(this.local_storage.path, true);

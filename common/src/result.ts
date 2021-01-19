@@ -111,7 +111,7 @@ export class TestCaseResults extends UniqueID implements Transportable
                 failed: ArrayToJSON(this.failed),
                 skipped: ArrayToJSON(this.skipped),
                 timestamp: this.timestamp,
-                task: this.task.toJSON()
+                task: (this.task != null) ? this.task.toJSON() : null
             };
     };
 

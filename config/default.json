@@ -3,23 +3,22 @@
         "Port": 3000
     },
     "Appveyor": {
-        "Account": "OptiRTC", 
-        "Project": "thunder",
-        "Token": "v2.wn9katdd52wcodyud51o",
+        "Account": "", 
+        "Project": "",
+        "Token": "",
         "PollIntervalSec": 300
     },
     "Core" : {
-        "MessageServer": "mqtt://localhost",
+        "MessageServer": "mqtt://proteus",
         "MessagePort": 1883,
-        "FileServer": "localhost",
+        "FileServer": "proteus",
         "FilePort": 3000
     },
     "Worker": {
         "id": "DebugWorker",
-        "timeout": 120,
+        "timeout": 240,
         "pool": "default",
-        "platform": "electron",
-        "heartbeat": 120
+        "platform": "electron"
     },
     "Serial": {
         "port": "/dev/electron",
